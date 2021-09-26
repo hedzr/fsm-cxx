@@ -75,11 +75,15 @@ namespace fsm_cxx {
     struct context_t {
         State current;
     };
+} // namespace fsm_cxx
+
+// action_t
+namespace fsm_cxx {
 
     template<typename State, typename Context = context_t<State>>
     class action_t {
     public:
-        using FN = std::function<void(Context &ctx, State next)>;
+        using FN = std::function<void(Context &ctx, State next_or_prev)>;
         ~action_t() {}
         action_t() {}
         action_t(std::nullptr_t) {}
@@ -100,8 +104,8 @@ namespace fsm_cxx {
             _f = fsm_cxx::util::cool::bind_tie<2>(std::forward<_Callable>(f), std::forward<_Args>(args)..., _1, _2);
         }
 
-        void operator()(Context &ctx, State next) {
-            _f(ctx, next);
+        void operator()(Context &ctx, State next) const {
+            if (_f) _f(ctx, next);
         }
 
     private:
@@ -136,6 +140,7 @@ namespace fsm_cxx {
 #endif
 } // namespace fsm_cxx
 
+// links_t
 namespace fsm_cxx { namespace detail {
     template<typename State>
     struct links_t {
@@ -149,17 +154,6 @@ namespace fsm_cxx { namespace detail {
             : event_name(o.event_name)
             , to(o.to) {}
         bool operator==(links_t const &rhs) const { return event_name == rhs.event_name && to == rhs.to; }
-    };
-    template<typename State, typename Action = action_t<State>>
-    struct actions_t {
-        Action entry_action;
-        Action exit_action;
-        actions_t(Action &&entry = nullptr, Action &&exit = nullptr)
-            : entry_action(std::move(entry))
-            , exit_action(std::move(exit)) {}
-        actions_t(actions_t const &o)
-            : entry_action(o.entry_action)
-            , exit_action(o.exit_action) {}
     };
 }} // namespace fsm_cxx::detail
 
@@ -176,20 +170,53 @@ namespace std {
     };
 } // namespace std
 
+// actions_t
+namespace fsm_cxx { namespace detail {
+    template<typename State, typename Action = action_t<State>>
+    struct actions_t {
+        Action entry_action;
+        Action exit_action;
+        actions_t(Action &&entry = nullptr, Action &&exit = nullptr)
+            : entry_action(std::move(entry))
+            , exit_action(std::move(exit)) {}
+        actions_t(actions_t const &o)
+            : entry_action(o.entry_action)
+            , exit_action(o.exit_action) {}
+    };
+}} // namespace fsm_cxx::detail
+
+// trans_item_t
+namespace fsm_cxx { namespace detail {
+    template<typename State, typename Action = action_t<State>>
+    struct trans_item_t {
+        State to{};
+        Action entry_action{nullptr};
+        Action exit_action{nullptr};
+        trans_item_t(State const &st = State{}, Action &&entry = nullptr, Action &&exit = nullptr)
+            : to(st)
+            , entry_action(std::move(entry))
+            , exit_action(std::move(exit)) {}
+        trans_item_t(trans_item_t const &o)
+            : to(o.to)
+            , entry_action(o.entry_action)
+            , exit_action(o.exit_action) {}
+    };
+}} // namespace fsm_cxx::detail
+
 namespace fsm_cxx {
 
     template<typename State, typename Action = action_t<State>>
-    struct transition_t {
+    struct transition_t_ {
         using First = detail::links_t<State>;
         using Second = detail::actions_t<State, Action>;
         using Maps = std::unordered_map<First, Second>;
         Maps m_;
 
-        transition_t() {}
-        ~transition_t() {}
+        transition_t_() {}
+        ~transition_t_() {}
 
         template<typename Event>
-        transition_t(Event const &, State const &to, Action &&entry = nullptr, Action &&exit = nullptr) {
+        transition_t_(Event const &, State const &to, Action &&entry = nullptr, Action &&exit = nullptr) {
             std::string event_name{fsm_cxx::debug::type_name<Event>()};
             // First k{event_name, to};
             // Second v(std::move(entry), std::move(exit));
@@ -198,14 +225,14 @@ namespace fsm_cxx {
             // m_.emplace(k, v);
             m_.emplace(std::move(First{event_name, to}), std::move(Second{std::move(entry), std::move(exit)}));
         }
-        transition_t(std::string const &event_name, State const &to, Action &&entry = nullptr, Action &&exit = nullptr) {
+        transition_t_(std::string const &event_name, State const &to, Action &&entry = nullptr, Action &&exit = nullptr) {
             m_.emplace(std::move(First{event_name, to}), std::move(Second{std::move(entry), std::move(exit)}));
         }
-        void add(transition_t &&t) {
+        void add(transition_t_ &&t) {
             for (auto &[k, v] : t.m_)
                 m_.emplace(k, v);
         }
-        void add(transition_t const &t) {
+        void add(transition_t_ const &t) {
             for (auto const &[k, v] : t.m_)
                 m_.insert({k, v});
         }
@@ -215,6 +242,40 @@ namespace fsm_cxx {
                     return std::tuple<bool, State, Second const &>{true, k.to, v};
             }
             return std::tuple<bool, State, Second const &>{false, State{}, Second{}};
+        }
+    };
+
+    template<typename State, typename Action = action_t<State>>
+    struct transition_t {
+        using First = std::string;
+        using Second = detail::trans_item_t<State, Action>;
+        using Maps = std::unordered_map<First, Second>;
+        Maps m_;
+
+        transition_t() {}
+        ~transition_t() {}
+
+        template<typename Event>
+        transition_t(Event const &, State const &to, Action &&entry = nullptr, Action &&exit = nullptr) {
+            std::string event_name{fsm_cxx::debug::type_name<Event>()};
+            m_.emplace(std::move(First{event_name}), std::move(Second{to, std::move(entry), std::move(exit)}));
+        }
+        transition_t(std::string const &event_name, State const &to, Action &&entry = nullptr, Action &&exit = nullptr) {
+            m_.emplace(std::move(First{event_name}), std::move(Second{to, std::move(entry), std::move(exit)}));
+        }
+        void add(transition_t &&t) {
+            for (auto &[k, v] : t.m_)
+                m_.emplace(k, v);
+        }
+        void add(transition_t const &t) {
+            for (auto const &[k, v] : t.m_)
+                m_.insert({k, v});
+        }
+        std::tuple<bool, Second const &> get(std::string const &event_name) const {
+            auto it = m_.find(event_name);
+            if(it!=m_.end())
+                return std::tuple<bool, Second const&>{true, it->second};
+            return std::tuple<bool, Second const &>{false, Second{}};
         }
     };
 
@@ -283,18 +344,22 @@ namespace fsm_cxx {
             std::string event_name{fsm_cxx::debug::type_name<Event>()};
             if (auto it = _trans_tbl.find(_ctx.current); it != _trans_tbl.end()) {
                 auto &tr = it->second;
-                auto [ok, to, actions] = tr.get(event_name);
+                auto [ok, itr] = tr.get(event_name);
                 if (ok) {
-                    _on_action(_ctx.current, event_name, to, actions);
+                    auto from = _ctx.current;
+                    itr.exit_action(_ctx, from);
+                    itr.entry_action(_ctx, itr.to);
+                    _on_action(_ctx.current, event_name, itr.to, itr);
                     // UNUSED(actions);
                     // fsm_debug("        [%s] -- %s --> [%s]", state_to_sting(_ctx.current).c_str(), event_name.c_str(), state_to_sting(to).c_str());
-                    _ctx.current = to;
+                    _ctx.current = itr.to;
                 }
             }
         }
 
     public:
         static std::string state_to_sting(State state) { return shorten(fsm_cxx::to_string(state)); }
+
     protected:
         static std::string shorten(std::string const &s) {
             auto pos = s.rfind("::");

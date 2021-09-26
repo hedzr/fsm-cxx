@@ -45,12 +45,18 @@ namespace fsm_cxx { namespace test {
                 .terminated(my_state::Terminated)
                 .error(my_state::Error);
         m.transition(my_state::Initial, begin{}, my_state::Closed)
-                .transition(my_state::Closed, open{}, my_state::Opened)
+                .transition(
+                        my_state::Closed, open{}, my_state::Opened,
+                        [](context_t<my_state> &, my_state) { std::cout << "          .. <closed -> opened> entering" << '\n'; },
+                        [](context_t<my_state> &, my_state) { std::cout << "          .. <closed -> opened> exiting" << '\n'; })
                 .transition(my_state::Opened, close{}, my_state::Closed)
                 .transition(my_state::Closed, end{}, my_state::Terminated);
         m.transition(my_state::Opened,
-                     decltype(m)::Transition{end{}, my_state::Terminated, nullptr,
-                                             [](context_t<my_state> &, my_state) { std::cout << "<T><END>"; }});
+                     decltype(m)::Transition{end{}, my_state::Terminated,
+                                             [](context_t<my_state> &, my_state) { std::cout << "          .. <T><END>" << '\n'; },
+                                             nullptr});
+        
+        // debug log
         m.on_action_for_debug([m](auto const &from, auto const &ev, auto const &to, auto const &actions) {
             std::printf("        [%s] -- %s --> [%s]\n", m.state_to_sting(from).c_str(), ev.c_str(), m.state_to_sting(to).c_str());
             UNUSED(actions);
@@ -61,6 +67,7 @@ namespace fsm_cxx { namespace test {
         m.step_by(begin{});
         m.step_by(open{});
         m.step_by(close{});
+        m.step_by(open{});
         m.step_by(end{});
     }
 }} // namespace fsm_cxx::test
