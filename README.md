@@ -4,7 +4,7 @@
 ![CMake Build Matrix](https://github.com/hedzr/fsm-cxx/workflows/CMake%20Build%20Matrix/badge.svg?event=release) 
 --> [![GitHub tag (latest SemVer)](https://img.shields.io/github/tag/hedzr/fsm-cxx.svg?label=release)](https://github.com/hedzr/fsm-cxx/releases)
 
-`fsm-cxx` is a finite state machina library for C++17, a header-only library, and designed for easy binding and friendly programmatic interface.
+`fsm-cxx` is a finite state machina library for C++17, header-only, light-weight but full-featured, and designed for easy binding and friendly programmatic interface.
 
 ## Features
 
