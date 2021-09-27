@@ -164,10 +164,7 @@ namespace fsm_cxx {
             if (_f) _f(ev, ctx, next_or_prev);
         }
 
-        operator bool() const {
-            if (_f) return true;
-            return false;
-        }
+        operator bool() const { return bool(_f); }
 
     private:
         FN _f;
