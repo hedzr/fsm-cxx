@@ -36,39 +36,40 @@ namespace fsm_cxx { namespace test {
 
     // event
 
-    struct begin {};
-    struct end {};
-    struct open {};
-    struct close {};
+    struct event_base {};
+    struct begin : public event_base {};
+    struct end : public event_base {};
+    struct open : public event_base {};
+    struct close : public event_base {};
 
     void test_state_meta() {
         // using namespace hicc::dp::state::meta;
         // using namespace hmeta;
-        machine_t<my_state> m;
+        machine_t<my_state, event_base> m;
         using M = decltype(m);
 
         m.initial(my_state::Initial)
                 .terminated(my_state::Terminated)
-                .error(my_state::Error, [](M::Context &, M::State const &) { std::cerr << "          .. <error> entering" << '\n'; })
+                .error(my_state::Error, [](event_base const &, M::Context &, M::State const &) { std::cerr << "          .. <error> entering" << '\n'; })
                 .state(
                         my_state::Opened,
-                        [](M::Context &, M::State const &) { std::cout << "          .. <opened> entering" << '\n'; },
-                        [](M::Context &, M::State const &) { std::cout << "          .. <opened> exiting" << '\n'; })
+                        [](event_base const &, M::Context &, M::State const &) { std::cout << "          .. <opened> entering" << '\n'; },
+                        [](event_base const &, M::Context &, M::State const &) { std::cout << "          .. <opened> exiting" << '\n'; })
                 .state(
                         my_state::Closed,
-                        [](M::Context &, M::State const &) { std::cout << "          .. <closed> entering" << '\n'; },
-                        [](M::Context &, M::State const &) { std::cout << "          .. <closed> exiting" << '\n'; });
-        
+                        [](event_base const &, M::Context &, M::State const &) { std::cout << "          .. <closed> entering" << '\n'; },
+                        [](event_base const &, M::Context &, M::State const &) { std::cout << "          .. <closed> exiting" << '\n'; });
+
         m.transition(my_state::Initial, begin{}, my_state::Closed)
                 .transition(
                         my_state::Closed, open{}, my_state::Opened,
-                        [](M::Context &, M::State const &) { std::cout << "          .. <closed -> opened> entering" << '\n'; },
-                        [](M::Context &, M::State const &) { std::cout << "          .. <closed -> opened> exiting" << '\n'; })
+                        [](event_base const &, M::Context &, M::State const &) { std::cout << "          .. <closed -> opened> entering" << '\n'; },
+                        [](event_base const &, M::Context &, M::State const &) { std::cout << "          .. <closed -> opened> exiting" << '\n'; })
                 .transition(my_state::Opened, close{}, my_state::Closed)
                 .transition(my_state::Closed, end{}, my_state::Terminated);
         m.transition(my_state::Opened,
                      M::Transition{end{}, my_state::Terminated,
-                                   [](M::Context &, M::State const &) { std::cout << "          .. <T><END>" << '\n'; },
+                                   [](event_base const &, M::Context &, M::State const &) { std::cout << "          .. <T><END>" << '\n'; },
                                    nullptr});
 
         // debug log
@@ -86,10 +87,23 @@ namespace fsm_cxx { namespace test {
         m.step_by(end{});
     }
 
+    // TODO 1. thread safe, 2. hierarchical state, 3. payload
+
+    AWESOME_MAKE_ENUM(calculator,
+                      Empty,
+                      Error,
+                      Off,          // Initial state, Terminated state
+                      On,           // CE/On pressed
+                      ON_Op1,       // +,-,*,/
+                      ON_Op2,       // 0..9
+                      ON_OpResult,  // =
+                      ON_OpEntered, //
+                      ON_CE)
+
     void test_state_meta_2() {
         // using namespace hicc::dp::state::meta;
         // using namespace hmeta;
-        machine_t<my_state> m;
+        machine_t<my_state, event_base> m;
         using M = decltype(m);
 
         m.initial(my_state::Initial)
@@ -98,13 +112,13 @@ namespace fsm_cxx { namespace test {
         m.transition(my_state::Initial, begin{}, my_state::Closed)
                 .transition(
                         my_state::Closed, open{}, my_state::Opened,
-                        [](M::Context &, M::State const &) { std::cout << "          .. <closed -> opened> entering" << '\n'; },
-                        [](M::Context &, M::State const &) { std::cout << "          .. <closed -> opened> exiting" << '\n'; })
+                        [](event_base const &, M::Context &, M::State const &) { std::cout << "          .. <closed -> opened> entering" << '\n'; },
+                        [](event_base const &, M::Context &, M::State const &) { std::cout << "          .. <closed -> opened> exiting" << '\n'; })
                 .transition(my_state::Opened, close{}, my_state::Closed)
                 .transition(my_state::Closed, end{}, my_state::Terminated);
         m.transition(my_state::Opened,
                      M::Transition{end{}, my_state::Terminated,
-                                   [](M::Context &, M::State const &) { std::cout << "          .. <T><END>" << '\n'; },
+                                   [](event_base const &, M::Context &, M::State const &) { std::cout << "          .. <T><END>" << '\n'; },
                                    nullptr});
 
         // debug log
