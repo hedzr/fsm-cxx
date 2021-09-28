@@ -50,31 +50,31 @@ namespace fsm_cxx { namespace test {
 
         m.initial(my_state::Initial)
                 .terminated(my_state::Terminated)
-                .error(my_state::Error, [](event_base const &, M::Context &, M::State const &) { std::cerr << "          .. <error> entering" << '\n'; })
+                .error(my_state::Error, [](event_base const &, M::Context &, M::State const &, M::Payload const &) { std::cerr << "          .. <error> entering" << '\n'; })
                 .state(
                         my_state::Opened,
-                        [](event_base const &, M::Context &, M::State const &) { std::cout << "          .. <opened> entering" << '\n'; },
-                        [](event_base const &, M::Context &, M::State const &) { std::cout << "          .. <opened> exiting" << '\n'; })
+                        [](event_base const &, M::Context &, M::State const &, M::Payload const &) { std::cout << "          .. <opened> entering" << '\n'; },
+                        [](event_base const &, M::Context &, M::State const &, M::Payload const &) { std::cout << "          .. <opened> exiting" << '\n'; })
                 .state(
                         my_state::Closed,
-                        [](event_base const &, M::Context &, M::State const &) { std::cout << "          .. <closed> entering" << '\n'; },
-                        [](event_base const &, M::Context &, M::State const &) { std::cout << "          .. <closed> exiting" << '\n'; });
+                        [](event_base const &, M::Context &, M::State const &, M::Payload const &) { std::cout << "          .. <closed> entering" << '\n'; },
+                        [](event_base const &, M::Context &, M::State const &, M::Payload const &) { std::cout << "          .. <closed> exiting" << '\n'; });
 
         m.transition(my_state::Initial, begin{}, my_state::Closed)
                 .transition(
                         my_state::Closed, open{}, my_state::Opened,
-                        [](event_base const &, M::Context &, M::State const &) { std::cout << "          .. <closed -> opened> entering" << '\n'; },
-                        [](event_base const &, M::Context &, M::State const &) { std::cout << "          .. <closed -> opened> exiting" << '\n'; })
+                        [](event_base const &, M::Context &, M::State const &, M::Payload const &) { std::cout << "          .. <closed -> opened> entering" << '\n'; },
+                        [](event_base const &, M::Context &, M::State const &, M::Payload const &) { std::cout << "          .. <closed -> opened> exiting" << '\n'; })
                 .transition(my_state::Opened, close{}, my_state::Closed)
                 .transition(my_state::Closed, end{}, my_state::Terminated);
         m.transition(my_state::Opened,
                      M::Transition{end{}, my_state::Terminated,
-                                   [](event_base const &, M::Context &, M::State const &) { std::cout << "          .. <T><END>" << '\n'; },
+                                   [](event_base const &, M::Context &, M::State const &, M::Payload const &) { std::cout << "          .. <T><END>" << '\n'; },
                                    nullptr});
 
         // debug log
-        m.on_action_for_debug([m](auto const &from, auto const &ev, auto const &to, auto const &actions) {
-            std::printf("        [%s] -- %s --> [%s]\n", m.state_to_sting(from).c_str(), ev.c_str(), m.state_to_sting(to).c_str());
+        m.on_action_for_debug([m](auto const &from, auto const &ev, auto const &to, auto const &actions, auto const &payload) {
+            std::printf("        [%s] -- %s --> [%s] (payload = %s)\n", m.state_to_sting(from).c_str(), ev.c_str(), m.state_to_sting(to).c_str(), to_string(payload).c_str());
             UNUSED(actions);
         });
 
@@ -112,18 +112,18 @@ namespace fsm_cxx { namespace test {
         m.transition(my_state::Initial, begin{}, my_state::Closed)
                 .transition(
                         my_state::Closed, open{}, my_state::Opened,
-                        [](event_base const &, M::Context &, M::State const &) { std::cout << "          .. <closed -> opened> entering" << '\n'; },
-                        [](event_base const &, M::Context &, M::State const &) { std::cout << "          .. <closed -> opened> exiting" << '\n'; })
+                        [](event_base const &, M::Context &, M::State const &, M::Payload const &) { std::cout << "          .. <closed -> opened> entering" << '\n'; },
+                        [](event_base const &, M::Context &, M::State const &, M::Payload const &) { std::cout << "          .. <closed -> opened> exiting" << '\n'; })
                 .transition(my_state::Opened, close{}, my_state::Closed)
                 .transition(my_state::Closed, end{}, my_state::Terminated);
         m.transition(my_state::Opened,
                      M::Transition{end{}, my_state::Terminated,
-                                   [](event_base const &, M::Context &, M::State const &) { std::cout << "          .. <T><END>" << '\n'; },
+                                   [](event_base const &, M::Context &, M::State const &, M::Payload const &) { std::cout << "          .. <T><END>" << '\n'; },
                                    nullptr});
 
         // debug log
-        m.on_action_for_debug([m](auto const &from, auto const &ev, auto const &to, auto const &actions) {
-            std::printf("        [%s] -- %s --> [%s]\n", m.state_to_sting(from).c_str(), ev.c_str(), m.state_to_sting(to).c_str());
+        m.on_action_for_debug([m](auto const &from, auto const &ev, auto const &to, auto const &actions, auto const &payload) {
+            std::printf("        [%s] -- %s --> [%s] (payload: %s)\n", m.state_to_sting(from).c_str(), ev.c_str(), m.state_to_sting(to).c_str(), to_string(payload).c_str());
             UNUSED(actions);
         });
 

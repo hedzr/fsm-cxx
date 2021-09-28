@@ -65,6 +65,7 @@ namespace fsm_cxx {
     template<typename EventT>
     struct event_t {
         EventT eo{};
+
         event_t() {}
         event_t(EventT const &t)
             : eo(t) {}
@@ -72,12 +73,19 @@ namespace fsm_cxx {
             : eo(std::move(t)) {}
         event_t(event_t const &t)
             : eo(t.eo) {}
+
         bool operator==(EventT const &t) const { return typeid(eo) == typeid(t); }
         bool operator==(event_t const &t) const { return typeid(eo) == typeid(t.eo); }
         bool operator==(std::string const &ev_name) const { return ev_name == fsm_cxx::debug::type_name<EventT>(); }
+
         friend std::ostream &operator<<(std::ostream &os, event_t const &o) {
             return os << o.eo;
         }
+    };
+
+    struct payload_t {
+        ~payload_t() {}
+        friend std::ostream &operator<<(std::ostream &os, payload_t const &) { return os << "a payload"; }
     };
 } // namespace fsm_cxx
 
@@ -133,12 +141,14 @@ namespace fsm_cxx {
     template<typename S,
              typename EventT = dummy_event,
              typename StateT = state_t<S>,
-             typename ContextT = context_t<StateT>>
+             typename ContextT = context_t<StateT>,
+             typename PayloadT = payload_t>
     class action_t {
     public:
         using State = StateT;
         using Context = ContextT;
-        using FN = std::function<void(EventT const &ev, Context &ctx, State const &next_or_prev)>;
+        using Payload = PayloadT;
+        using FN = std::function<void(EventT const &ev, Context &ctx, State const &next_or_prev, Payload const &payload)>;
 
         action_t() {}
         ~action_t() {}
@@ -157,11 +167,11 @@ namespace fsm_cxx {
                                   int> = 0>
         action_t(_Callable &&f, _Args &&...args) {
             using namespace std::placeholders;
-            _f = fsm_cxx::util::cool::bind_tie<3>(std::forward<_Callable>(f), std::forward<_Args>(args)..., _1, _2, _3);
+            _f = fsm_cxx::util::cool::bind_tie<4>(std::forward<_Callable>(f), std::forward<_Args>(args)..., _1, _2, _3, _4);
         }
 
-        void operator()(EventT const &ev, Context &ctx, State const &next_or_prev) const {
-            if (_f) _f(ev, ctx, next_or_prev);
+        void operator()(EventT const &ev, Context &ctx, State const &next_or_prev, Payload const &payload) const {
+            if (_f) _f(ev, ctx, next_or_prev, payload);
         }
 
         operator bool() const { return bool(_f); }
@@ -226,7 +236,7 @@ namespace std {
             return h1;
         }
     };
-    
+
     template<typename State>
     struct hash<fsm_cxx::detail::links_t<State>> {
         typedef fsm_cxx::detail::links_t<State> argument_type;
@@ -245,7 +255,8 @@ namespace fsm_cxx { namespace detail {
              typename EventT = dummy_event,
              typename StateT = state_t<S>,
              typename ContextT = context_t<StateT>,
-             typename ActionT = action_t<S, EventT, StateT, ContextT>>
+             typename PayloadT = payload_t,
+             typename ActionT = action_t<S, EventT, StateT, ContextT, PayloadT>>
     struct actions_t {
         ActionT entry_action;
         ActionT exit_action;
@@ -265,16 +276,18 @@ namespace fsm_cxx { namespace detail {
              typename EventT = dummy_event,
              typename StateT = state_t<S>,
              typename ContextT = context_t<StateT>,
-             typename ActionT = action_t<S, EventT, StateT, ContextT>>
+             typename PayloadT = payload_t,
+             typename ActionT = action_t<S, EventT, StateT, ContextT, PayloadT>>
     struct trans_item_t {
         using State = StateT;
         using Context = ContextT;
+        using Payload = PayloadT;
         using Action = ActionT;
-        
+
         State to{};
         Action entry_action{nullptr};
         Action exit_action{nullptr};
-        
+
         trans_item_t(State const &st = State{}, Action &&entry = nullptr, Action &&exit = nullptr)
             : to(st)
             , entry_action(std::move(entry))
@@ -292,16 +305,18 @@ namespace fsm_cxx {
              typename EventT = dummy_event,
              typename StateT = state_t<S>,
              typename ContextT = context_t<StateT>,
-             typename ActionT = action_t<S, EventT, StateT, ContextT>>
+             typename PayloadT = payload_t,
+             typename ActionT = action_t<S, EventT, StateT, ContextT, PayloadT>>
     struct transition_t {
         using Event = EventT;
         using State = StateT;
         using Context = ContextT;
+        using Payload = PayloadT;
         using Action = ActionT;
         using First = std::string;
-        using Second = detail::trans_item_t<S, EventT, StateT, ContextT, ActionT>;
+        using Second = detail::trans_item_t<S, EventT, StateT, ContextT, PayloadT, ActionT>;
         using Maps = std::unordered_map<First, Second>;
-        
+
         Maps m_;
 
         transition_t() {}
@@ -343,7 +358,8 @@ namespace fsm_cxx {
              typename EventT = dummy_event,
              typename StateT = state_t<S>,
              typename ContextT = context_t<StateT>,
-             typename ActionT = action_t<S, EventT, StateT, ContextT>,
+             typename PayloadT = payload_t,
+             typename ActionT = action_t<S, EventT, StateT, ContextT, PayloadT>,
              typename CharT = char,
              typename InT = std::basic_istream<CharT>>
     class machine_t final {
@@ -354,11 +370,12 @@ namespace fsm_cxx {
         using Event = EventT;
         using State = StateT;
         using Context = ContextT;
+        using Payload = PayloadT;
         using Action = ActionT;
-        using Actions = detail::actions_t<S, EventT, StateT, ContextT, ActionT>;
-        using Transition = transition_t<S, EventT, StateT, ContextT, ActionT>;
+        using Actions = detail::actions_t<S, EventT, StateT, ContextT, PayloadT, ActionT>;
+        using Transition = transition_t<S, EventT, StateT, ContextT, PayloadT, ActionT>;
         using TransitionTable = std::unordered_map<StateT, Transition>;
-        using OnAction = std::function<void(StateT const &, std::string const &, StateT const &, typename Transition::Second const &)>;
+        using OnAction = std::function<void(StateT const &, std::string const &, StateT const &, typename Transition::Second const &, Payload const &)>;
         using StateActions = std::unordered_map<StateT, Actions>;
 
     public:
@@ -413,8 +430,8 @@ namespace fsm_cxx {
         }
 
     public:
-        // template<typename Event = dummy_event>
-        void step_by(Event const &ev) {
+        void step_by(Event const &ev) { step_by(ev, Payload{}); }
+        void step_by(Event const &ev, Payload const &payload) {
             std::string event_name{fsm_cxx::debug::type_name<Event>()};
             if (auto it = _trans_tbl.find(_ctx.current); it != _trans_tbl.end()) {
                 auto &tr = it->second;
@@ -423,17 +440,17 @@ namespace fsm_cxx {
                     auto &from = _ctx.current;
 
                     auto leave = _state_actions.find(from);
-                    itr.exit_action(ev, _ctx, from);
+                    itr.exit_action(ev, _ctx, from, payload);
                     if (leave != _state_actions.end())
-                        leave->second.exit_action(ev, _ctx, itr.to);
+                        leave->second.exit_action(ev, _ctx, itr.to, payload);
 
                     _ctx.current = itr.to;
-                    if (_on_action) _on_action(from, event_name, itr.to, itr);
+                    if (_on_action) _on_action(from, event_name, itr.to, itr, payload);
 
                     auto enter = _state_actions.find(itr.to);
-                    itr.entry_action(ev, _ctx, itr.to);
+                    itr.entry_action(ev, _ctx, itr.to, payload);
                     if (enter != _state_actions.end())
-                        enter->second.entry_action(ev, _ctx, from);
+                        enter->second.entry_action(ev, _ctx, from, payload);
 
                     // UNUSED(actions);
                     // fsm_debug("        [%s] -- %s --> [%s]", state_to_sting(_ctx.current).c_str(), event_name.c_str(), state_to_sting(to).c_str());
@@ -453,7 +470,7 @@ namespace fsm_cxx {
 
         friend std::basic_istream<CharT> &operator>>(std::basic_istream<CharT> &is, machine_t &o) {
             CharT c;
-            is >> c; // TODO process the input stream (is >> c) and convert it to event to trigger
+            is >> c; // TODO process the input stream (is >> c) and convert it to event and trigger
             o.step_by(c);
             return is;
         }
