@@ -36,6 +36,7 @@
 #include <iostream>
 
 
+#ifndef __FUNCTION_NAME__
 #ifdef __clang__
 #define __FUNCTION_NAME__ __PRETTY_FUNCTION__
 #elif defined(__GNUC__)
@@ -43,8 +44,11 @@
 #elif defined(_MSC_VER)
 #define __FUNCTION_NAME__ __FUNCSIG__
 #endif
+#endif
 
 
+#ifndef __PRINT_IF_FALSE
+#define __PRINT_IF_FALSE
 // for C++ assert:
 //    assert(print_if_false(a==b, "want a equal to b"));
 //
@@ -55,8 +59,10 @@ inline bool print_if_false(const bool assertion, const char *msg) {
     return assertion;
 }
 inline bool print_if_false(const bool assertion, const std::string &msg) { return print_if_false(assertion, msg.c_str()); }
+#endif
 
 
+#ifndef assertm
 // assertm(a == b, "want a equal to b");
 #ifdef _DEBUG
 #define assertm(expr, msg) \
@@ -75,6 +81,7 @@ inline void __M_Assert(const char *expr_str, bool expr,
                        const std::string &msg) { __M_Assert(expr_str, expr, file, line, func, msg.c_str()); }
 #else
 #define assertm(expr, msg) (void) 9
+#endif
 #endif
 
 

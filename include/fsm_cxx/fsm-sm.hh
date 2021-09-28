@@ -226,6 +226,7 @@ namespace std {
             return h1;
         }
     };
+    
     template<typename State>
     struct hash<fsm_cxx::detail::links_t<State>> {
         typedef fsm_cxx::detail::links_t<State> argument_type;
@@ -269,9 +270,11 @@ namespace fsm_cxx { namespace detail {
         using State = StateT;
         using Context = ContextT;
         using Action = ActionT;
+        
         State to{};
         Action entry_action{nullptr};
         Action exit_action{nullptr};
+        
         trans_item_t(State const &st = State{}, Action &&entry = nullptr, Action &&exit = nullptr)
             : to(st)
             , entry_action(std::move(entry))
@@ -298,6 +301,7 @@ namespace fsm_cxx {
         using First = std::string;
         using Second = detail::trans_item_t<S, EventT, StateT, ContextT, ActionT>;
         using Maps = std::unordered_map<First, Second>;
+        
         Maps m_;
 
         transition_t() {}
