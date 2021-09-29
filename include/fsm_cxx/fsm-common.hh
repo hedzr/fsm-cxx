@@ -5,10 +5,11 @@
 #ifndef _PRIVATE_VAR_FOLDERS_0K_1RQY3K4X7_5B_73SW5PY2BW00000GN_T_CLION_CLANG_TIDY_FSM_COMMON_HH
 #define _PRIVATE_VAR_FOLDERS_0K_1RQY3K4X7_5B_73SW5PY2BW00000GN_T_CLION_CLANG_TIDY_FSM_COMMON_HH
 
+#include <functional>
+#include <memory>
 #include <mutex>
 #include <sstream>
 #include <string>
-
 
 // ------------------- cool::lock_guard
 namespace fsm_cxx::util::cool {
