@@ -6,17 +6,20 @@
 
 `fsm-cxx` is a finite state machina library for C++17, header-only, light-weight but full-featured, and designed for easy binding and friendly programmatic interface.
 
+**WIP**
+
 ## Features
 
 - Entry/exit actions
 - Event actions
-- Transition functions
-- Transition conditions (input action)
+- Transition actions
+- [ ] Transition conditions (input action)
 - Event payload (classes)
-- Inheritance of states and action functions
+- [ ] Inheritance of states and action functions
 
 ---
 
+<!--
 Statechart features
 Hierarchical states
 Entry and exit actions
@@ -37,6 +40,7 @@ No vtables (unless common base feature is used)
 Header only
 Relatively fast compile time
 No external dependencies except STL
+-->
 
 
 ## For Developer
