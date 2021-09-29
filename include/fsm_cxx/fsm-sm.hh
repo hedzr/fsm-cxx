@@ -102,7 +102,7 @@ namespace fsm_cxx {
         // little concerns to lock_guard_t for thread-safety
         using lock_guard_t = util::cool::lock_guard<MutexT>;
 
-        void current(State s) {
+        void current(State const &s) {
             lock_guard_t l;
             _current = s;
         }
@@ -144,9 +144,14 @@ namespace fsm_cxx {
             t = t_;
             return (*this);
         }
+        state_t &operator=(state_t const &t_) {
+            t = t_.t;
+            return (*this);
+        }
 
         bool operator==(state_t const &o) const { return t == o.t; }
         bool operator==(T const &o) const { return t == o; }
+        bool operator==(T o) const { return t == o; }
         friend std::ostream &operator<<(std::ostream &os, state_t const &o) { return os << o.t; }
     };
 
@@ -385,7 +390,8 @@ namespace fsm_cxx {
 
     public:
         machine_t &initial(S st, ActionT &&entry_action = nullptr, ActionT &&exit_action = nullptr) {
-            _ctx.current(_initial = st);
+            _initial = st;
+            _ctx.current(st);
             return state(st, std::move(entry_action), std::move(exit_action));
         }
         machine_t &terminated(S st, ActionT &&entry_action = nullptr, ActionT &&exit_action = nullptr) {
