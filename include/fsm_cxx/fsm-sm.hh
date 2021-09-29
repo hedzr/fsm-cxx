@@ -54,7 +54,7 @@ namespace fsm_cxx {
         Terminated,
     };
 
-    template<typename T>
+    template<typename T, typename MutexT = void>
     struct state_t;
 } // namespace fsm_cxx
 
@@ -91,8 +91,10 @@ namespace fsm_cxx {
 
 // context_t
 namespace fsm_cxx {
-    template<typename State>
+    template<typename State, typename MutexT = void>
     struct context_t {
+        using lock_guard_t = util::cool::lock_guard<MutexT>;
+
         State current;
     };
 } // namespace fsm_cxx
@@ -100,10 +102,10 @@ namespace fsm_cxx {
 // state_t
 namespace fsm_cxx {
 
-    template<typename T>
+    template<typename T, typename MutexT>
     struct state_t {
-        using State = state_t<T>;
-        using Context = context_t<State>;
+        using State = state_t<T, MutexT>;
+        using Context = context_t<State, MutexT>;
         // template<typename EventT>
         // using FN = std::function<void(event_t<EventT> const &ev, Context &ctx, State const &next_or_prev)>;
 
@@ -140,9 +142,10 @@ namespace fsm_cxx {
 
     template<typename S,
              typename EventT = dummy_event,
-             typename StateT = state_t<S>,
-             typename ContextT = context_t<StateT>,
-             typename PayloadT = payload_t>
+             typename MutexT = void,
+             typename PayloadT = payload_t,
+             typename StateT = state_t<S, MutexT>,
+             typename ContextT = context_t<StateT, MutexT>>
     class action_t {
     public:
         using State = StateT;
@@ -180,32 +183,6 @@ namespace fsm_cxx {
         FN _f;
     }; // class action_t
 
-#if defined(_DEBUG)
-    action_t<state_t> abc;
-    action_t<state_t> abc1{nullptr};
-    action_t<state_t> abc2{[](context_t<state_t> &, state_t) {}, std::placeholders::_1, std::placeholders::_2};
-    action_t<state_t> abc3;
-
-    template<typename State, typename Action = action_t<State>>
-    struct moore_state_t {
-        State state;
-        Action entry_action;
-        Action exit_action;
-    };
-
-    template<typename State, typename Char = char, typename Action = action_t<State>>
-    struct mealy_state_t {
-        State state;
-        Action entry_action;
-        Action exit_action;
-        friend std::basic_istream<Char> &operator>>(std::basic_istream<Char> &is, mealy_state_t &o) {
-            Char c;
-            is >> c;
-            UNUSED(o);
-            return is;
-        }
-    };
-#endif
 } // namespace fsm_cxx
 
 // links_t
@@ -227,9 +204,9 @@ namespace fsm_cxx { namespace detail {
 
 // hash for state_t/links_t
 namespace std {
-    template<typename State>
-    struct hash<fsm_cxx::state_t<State>> {
-        typedef fsm_cxx::state_t<State> argument_type;
+    template<typename State, typename MutexT>
+    struct hash<fsm_cxx::state_t<State, MutexT>> {
+        typedef fsm_cxx::state_t<State, MutexT> argument_type;
         typedef std::size_t result_type;
         result_type operator()(argument_type const &s) const {
             result_type h1(std::hash<int>{}(static_cast<int>(s.t)));
@@ -253,10 +230,11 @@ namespace std {
 namespace fsm_cxx { namespace detail {
     template<typename S,
              typename EventT = dummy_event,
-             typename StateT = state_t<S>,
-             typename ContextT = context_t<StateT>,
+             typename MutexT = void,
              typename PayloadT = payload_t,
-             typename ActionT = action_t<S, EventT, StateT, ContextT, PayloadT>>
+             typename StateT = state_t<S, MutexT>,
+             typename ContextT = context_t<StateT, MutexT>,
+             typename ActionT = action_t<S, EventT, MutexT, PayloadT, StateT, ContextT>>
     struct actions_t {
         ActionT entry_action;
         ActionT exit_action;
@@ -274,10 +252,11 @@ namespace fsm_cxx { namespace detail {
 namespace fsm_cxx { namespace detail {
     template<typename S,
              typename EventT = dummy_event,
-             typename StateT = state_t<S>,
-             typename ContextT = context_t<StateT>,
+             typename MutexT = void,
              typename PayloadT = payload_t,
-             typename ActionT = action_t<S, EventT, StateT, ContextT, PayloadT>>
+             typename StateT = state_t<S, MutexT>,
+             typename ContextT = context_t<StateT, MutexT>,
+             typename ActionT = action_t<S, EventT, MutexT, PayloadT, StateT, ContextT>>
     struct trans_item_t {
         using State = StateT;
         using Context = ContextT;
@@ -303,10 +282,11 @@ namespace fsm_cxx {
 
     template<typename S,
              typename EventT = dummy_event,
-             typename StateT = state_t<S>,
-             typename ContextT = context_t<StateT>,
+             typename MutexT = void,
              typename PayloadT = payload_t,
-             typename ActionT = action_t<S, EventT, StateT, ContextT, PayloadT>>
+             typename StateT = state_t<S, MutexT>,
+             typename ContextT = context_t<StateT, MutexT>,
+             typename ActionT = action_t<S, EventT, MutexT, PayloadT, StateT, ContextT>>
     struct transition_t {
         using Event = EventT;
         using State = StateT;
@@ -314,7 +294,7 @@ namespace fsm_cxx {
         using Payload = PayloadT;
         using Action = ActionT;
         using First = std::string;
-        using Second = detail::trans_item_t<S, EventT, StateT, ContextT, PayloadT, ActionT>;
+        using Second = detail::trans_item_t<S, EventT, MutexT, PayloadT, StateT, ContextT, ActionT>;
         using Maps = std::unordered_map<First, Second>;
 
         Maps m_;
@@ -357,10 +337,10 @@ namespace fsm_cxx {
     template<typename S,
              typename EventT = dummy_event,
              typename MutexT = void, // or std::mutex
-             typename StateT = state_t<S>,
-             typename ContextT = context_t<StateT>,
              typename PayloadT = payload_t,
-             typename ActionT = action_t<S, EventT, StateT, ContextT, PayloadT>,
+             typename StateT = state_t<S>,
+             typename ContextT = context_t<StateT, MutexT>,
+             typename ActionT = action_t<S, EventT, MutexT, PayloadT, StateT, ContextT>,
              typename CharT = char,
              typename InT = std::basic_istream<CharT>>
     class machine_t final {
@@ -375,8 +355,8 @@ namespace fsm_cxx {
         using Context = ContextT;
         using Payload = PayloadT;
         using Action = ActionT;
-        using Actions = detail::actions_t<S, EventT, StateT, ContextT, PayloadT, ActionT>;
-        using Transition = transition_t<S, EventT, StateT, ContextT, PayloadT, ActionT>;
+        using Actions = detail::actions_t<S, EventT, MutexT, PayloadT, StateT, ContextT, ActionT>;
+        using Transition = transition_t<S, EventT, MutexT, PayloadT, StateT, ContextT, ActionT>;
         using TransitionTable = std::unordered_map<StateT, Transition>;
         using OnAction = std::function<void(StateT const &, std::string const &, StateT const &, typename Transition::Second const &, Payload const &)>;
         using StateActions = std::unordered_map<StateT, Actions>;
@@ -437,15 +417,16 @@ namespace fsm_cxx {
         void step_by(Event const &ev) { step_by(ev, Payload{}); }
         void step_by(Event const &ev, Payload const &payload) {
             std::string event_name{fsm_cxx::debug::type_name<Event>()};
+
             lock_guard_t locker;
             if (auto it = _trans_tbl.find(_ctx.current); it != _trans_tbl.end()) {
                 auto &tr = it->second;
                 auto [ok, itr] = tr.get(event_name);
                 if (ok) {
                     auto &from = _ctx.current;
-                    
+
                     locker.unlock();
-                    
+
                     auto leave = _state_actions.find(from);
                     itr.exit_action(ev, _ctx, from, payload);
                     if (leave != _state_actions.end())
