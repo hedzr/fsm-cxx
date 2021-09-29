@@ -85,9 +85,11 @@ namespace fsm_cxx { namespace test {
         m.step_by(close{});
         m.step_by(open{});
         m.step_by(end{});
+        
+        std::printf("---- END OF test_state_meta()\n\n\n");
     }
 
-    // TODO 1. thread safe, 2. hierarchical state
+    // TODO 1. hierarchical state
 
     AWESOME_MAKE_ENUM(calculator,
                       Empty,
@@ -103,7 +105,7 @@ namespace fsm_cxx { namespace test {
     void test_state_meta_2() {
         // using namespace hicc::dp::state::meta;
         // using namespace hmeta;
-        machine_t<my_state, event_base> m;
+        machine_t<my_state, event_base, std::mutex> m;
         using M = decltype(m);
 
         m.initial(my_state::Initial)
@@ -134,6 +136,8 @@ namespace fsm_cxx { namespace test {
         m.step_by(close{});
         m.step_by(open{});
         m.step_by(end{});
+        
+        std::printf("---- END OF test_state_meta_2()\n\n\n");
     }
 }} // namespace fsm_cxx::test
 
@@ -204,8 +208,23 @@ namespace lambdas {
     }
 } // namespace lambdas
 
+void test_lock_guard() {
+    {
+        std::mutex mu;
+        mu.unlock();
+        std::lock_guard<std::mutex> lock(mu);
+    }
+    {
+        fsm_cxx::util::cool::lock_guard<std::mutex> lock;
+    }
+    {
+        fsm_cxx::util::cool::lock_guard<void> lock;
+    }
+}
 
 int main() {
+
+    test_lock_guard();
 
     // lambdas::test_lambdas();
     test_state_basic();

@@ -356,6 +356,7 @@ namespace fsm_cxx {
 
     template<typename S,
              typename EventT = dummy_event,
+             typename MutexT = void, // or std::mutex
              typename StateT = state_t<S>,
              typename ContextT = context_t<StateT>,
              typename PayloadT = payload_t,
@@ -379,6 +380,7 @@ namespace fsm_cxx {
         using TransitionTable = std::unordered_map<StateT, Transition>;
         using OnAction = std::function<void(StateT const &, std::string const &, StateT const &, typename Transition::Second const &, Payload const &)>;
         using StateActions = std::unordered_map<StateT, Actions>;
+        using lock_guard_t = util::cool::lock_guard<MutexT>;
 
     public:
         machine_t &initial(S st, ActionT &&entry_action = nullptr, ActionT &&exit_action = nullptr) {
@@ -435,12 +437,15 @@ namespace fsm_cxx {
         void step_by(Event const &ev) { step_by(ev, Payload{}); }
         void step_by(Event const &ev, Payload const &payload) {
             std::string event_name{fsm_cxx::debug::type_name<Event>()};
+            lock_guard_t locker;
             if (auto it = _trans_tbl.find(_ctx.current); it != _trans_tbl.end()) {
                 auto &tr = it->second;
                 auto [ok, itr] = tr.get(event_name);
                 if (ok) {
                     auto &from = _ctx.current;
-
+                    
+                    locker.unlock();
+                    
                     auto leave = _state_actions.find(from);
                     itr.exit_action(ev, _ctx, from, payload);
                     if (leave != _state_actions.end())
@@ -483,7 +488,6 @@ namespace fsm_cxx {
         TransitionTable _trans_tbl{};
         OnAction _on_action{};
         StateActions _state_actions{};
-        std::mutex _mu;
     }; // class machine_t
 
 } // namespace fsm_cxx
