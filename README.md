@@ -76,6 +76,7 @@ namespace fsm_cxx { namespace test {
         machine_t<my_state, event_base> m;
         using M = decltype(m);
 
+        // states
         m.initial(my_state::Initial)
                 .terminated(my_state::Terminated)
                 .error(my_state::Error, [](event_base const &, M::Context &, M::State const &, M::Payload const &) { std::cerr << "          .. <error> entering" << '\n'; })
@@ -88,6 +89,7 @@ namespace fsm_cxx { namespace test {
                         [](event_base const &, M::Context &, M::State const &, M::Payload const &) { std::cout << "          .. <closed> entering" << '\n'; },
                         [](event_base const &, M::Context &, M::State const &, M::Payload const &) { std::cout << "          .. <closed> exiting" << '\n'; });
 
+        // transistions
         m.transition(my_state::Initial, begin{}, my_state::Closed)
                 .transition(
                         my_state::Closed, open{}, my_state::Opened,
@@ -100,6 +102,14 @@ namespace fsm_cxx { namespace test {
                                    [](event_base const &, M::Context &, M::State const &, M::Payload const &) { std::cout << "          .. <T><END>" << '\n'; },
                                    nullptr});
 
+        // guards
+        m.add_guard(my_state::Opened, [](event_base const &, M::Context &, M::State const &, M::Payload const &) -> bool { return true; });
+        m.add_guard(my_state::Opened, [](event_base const &, M::Context &, M::State const &, M::Payload const &p) -> bool { return p._ok; });
+
+        m.on_error([](Reason reason, M::State const &, M::Context &, M::Event const &, M::Payload const &) {
+            std::cout << "          Error: reason = " << reason << '\n';
+        });
+
         // debug log
         m.on_action_for_debug([&m](auto const &from, auto const &ev, auto const &to, auto const &actions, auto const &payload) {
             std::printf("        [%s] -- %s --> [%s] (payload = %s)\n", m.state_to_sting(from).c_str(), ev.c_str(), m.state_to_sting(to).c_str(), to_string(payload).c_str());
@@ -109,11 +119,13 @@ namespace fsm_cxx { namespace test {
         // processing
 
         m.step_by(begin{});
+        if (!m.step_by(open{}, payload_t{false}))
+            std::cout << "          E. cannot step to next with a false payload\n";
         m.step_by(open{});
         m.step_by(close{});
         m.step_by(open{});
         m.step_by(end{});
-        
+
         std::printf("---- END OF test_state_meta()\n\n\n");
     }
 }
