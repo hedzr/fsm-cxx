@@ -16,6 +16,8 @@
 - [ ] Transition conditions (input action)
 - Event payload (classes)
 - [ ] Inheritance of states and action functions
+- [ ] Documentations (NOT YET)
+- [ ] Examples (NOT YET)
 
 ---
 
@@ -42,6 +44,85 @@ Relatively fast compile time
 No external dependencies except STL
 -->
 
+## Usages
+
+A simple state machine is:
+
+```cpp
+#include <fsm_cxx.hh>
+namespace fsm_cxx { namespace test {
+
+    // states
+
+    AWESOME_MAKE_ENUM(my_state,
+                      Empty,
+                      Error,
+                      Initial,
+                      Terminated,
+                      Opened,
+                      Closed)
+
+    // event
+
+    struct event_base {};
+    struct begin : public event_base {};
+    struct end : public event_base {};
+    struct open : public event_base {};
+    struct close : public event_base {};
+
+    void test_state_meta() {
+        // using namespace hicc::dp::state::meta;
+        // using namespace hmeta;
+        machine_t<my_state, event_base> m;
+        using M = decltype(m);
+
+        m.initial(my_state::Initial)
+                .terminated(my_state::Terminated)
+                .error(my_state::Error, [](event_base const &, M::Context &, M::State const &, M::Payload const &) { std::cerr << "          .. <error> entering" << '\n'; })
+                .state(
+                        my_state::Opened,
+                        [](event_base const &, M::Context &, M::State const &, M::Payload const &) { std::cout << "          .. <opened> entering" << '\n'; },
+                        [](event_base const &, M::Context &, M::State const &, M::Payload const &) { std::cout << "          .. <opened> exiting" << '\n'; })
+                .state(
+                        my_state::Closed,
+                        [](event_base const &, M::Context &, M::State const &, M::Payload const &) { std::cout << "          .. <closed> entering" << '\n'; },
+                        [](event_base const &, M::Context &, M::State const &, M::Payload const &) { std::cout << "          .. <closed> exiting" << '\n'; });
+
+        m.transition(my_state::Initial, begin{}, my_state::Closed)
+                .transition(
+                        my_state::Closed, open{}, my_state::Opened,
+                        [](event_base const &, M::Context &, M::State const &, M::Payload const &) { std::cout << "          .. <closed -> opened> entering" << '\n'; },
+                        [](event_base const &, M::Context &, M::State const &, M::Payload const &) { std::cout << "          .. <closed -> opened> exiting" << '\n'; })
+                .transition(my_state::Opened, close{}, my_state::Closed)
+                .transition(my_state::Closed, end{}, my_state::Terminated);
+        m.transition(my_state::Opened,
+                     M::Transition{end{}, my_state::Terminated,
+                                   [](event_base const &, M::Context &, M::State const &, M::Payload const &) { std::cout << "          .. <T><END>" << '\n'; },
+                                   nullptr});
+
+        // debug log
+        m.on_action_for_debug([&m](auto const &from, auto const &ev, auto const &to, auto const &actions, auto const &payload) {
+            std::printf("        [%s] -- %s --> [%s] (payload = %s)\n", m.state_to_sting(from).c_str(), ev.c_str(), m.state_to_sting(to).c_str(), to_string(payload).c_str());
+            UNUSED(actions);
+        });
+
+        // processing
+
+        m.step_by(begin{});
+        m.step_by(open{});
+        m.step_by(close{});
+        m.step_by(open{});
+        m.step_by(end{});
+        
+        std::printf("---- END OF test_state_meta()\n\n\n");
+    }
+}
+
+int main() {
+    fsm_cxx::test::test_state_meta();
+    return 0;
+}
+```
 
 ## For Developer
 
