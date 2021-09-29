@@ -5,8 +5,32 @@
 #ifndef _PRIVATE_VAR_FOLDERS_0K_1RQY3K4X7_5B_73SW5PY2BW00000GN_T_CLION_CLANG_TIDY_FSM_COMMON_HH
 #define _PRIVATE_VAR_FOLDERS_0K_1RQY3K4X7_5B_73SW5PY2BW00000GN_T_CLION_CLANG_TIDY_FSM_COMMON_HH
 
+#include <mutex>
 #include <sstream>
 #include <string>
+
+
+// ------------------- cool::lock_guard
+namespace fsm_cxx::util::cool {
+    template<typename _Mutex>
+    class lock_guard {
+    public:
+        _Mutex _m;
+        lock_guard() { _m.lock(); }
+        ~lock_guard() { _m.unlock(); }
+        void lock() { _m.lock(); }
+        void unlock() { _m.unlock(); }
+    };
+
+    template<>
+    class lock_guard<void> {
+    public:
+        lock_guard() {}
+        ~lock_guard() {}
+        void lock() {}
+        void unlock() {}
+    };
+} // namespace fsm_cxx::util::cool
 
 // ------------------- cool::bind_tie
 namespace fsm_cxx::util::cool {
