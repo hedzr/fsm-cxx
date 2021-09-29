@@ -96,11 +96,51 @@ namespace fsm_cxx {
 
 // ----------------------------- context_t
 namespace fsm_cxx {
-    template<typename State, typename MutexT = void>
+    template<typename State,
+             typename EventT = dummy_event,
+             typename MutexT = void,
+             typename PayloadT = payload_t>
     struct context_t {
         // while you're extending from context_t, take a
         // little concerns to lock_guard_t for thread-safety
         using lock_guard_t = util::cool::lock_guard<MutexT>;
+        using Ctx = context_t<State, EventT, MutexT, PayloadT>;
+        using Pred = std::function<bool(EventT const &, Ctx &, State const &, PayloadT const &)>;
+        using Preds = std::vector<Pred>;
+        using First = State;
+        using Second = Preds;
+        using Guards = std::unordered_map<First, Second>;
+
+        /**
+         * @brief reset the context to initial state
+         * @param t 
+         */
+        void reset(State const &t, bool clear_guards = false) {
+            _current = t;
+            if (clear_guards)
+                _guards.clear();
+        }
+
+        /**
+         * @brief verify all guards for the target state
+         * @param to the target state
+         * @param ev the event
+         * @param payload the payload
+         * @return true if the target state can be transit to, else false
+         */
+        bool verify(State const &to, EventT const &ev, PayloadT const &payload) {
+            auto it = _guards.find(to);
+            if (it == _guards.end()) {
+                return true;
+            }
+
+            for (auto itx = it->second.begin(); itx != it->second.end(); itx++) {
+                auto &fn = *(itx);
+                if (!fn(ev, *this, to, payload))
+                    return false;
+            }
+            return true;
+        }
 
         void current(State const &s) {
             lock_guard_t l;
@@ -116,8 +156,32 @@ namespace fsm_cxx {
             return tmp;
         }
 
+        /**
+         * @brief add transition guard/condition into context
+         * @tparam _Callable 
+         * @tparam _Args 
+         * @param st state which is target of a transition
+         * @param f a function has prototype: bool(EventT const &, Context &, State const &, PayloadT const &)
+         * @param args 
+         */
+        template<typename _Callable, typename... _Args>
+        void add_guard(State const &st, _Callable &&f, _Args &&...args) {
+            using namespace std::placeholders;
+            auto fn = fsm_cxx::util::cool::bind_tie<4>(std::forward<_Callable>(f), std::forward<_Args>(args)..., _1, _2, _3, _4, _5);
+
+            auto it = _guards.find(st);
+            if (it == _guards.end()) {
+                Second second;
+                second.push_back(fn);
+                _guards.insert({st, second});
+                return;
+            }
+            it->second.push_back(fn);
+        }
+
     private:
         State _current{};
+        Guards _guards{};
     };
 } // namespace fsm_cxx
 
@@ -127,7 +191,7 @@ namespace fsm_cxx {
     template<typename T, typename MutexT>
     struct state_t {
         using State = state_t<T, MutexT>;
-        using Context = context_t<State, MutexT>;
+        // using Context = context_t<State, MutexT>;
 
         T t{};
         // template<typename EventT>
@@ -165,7 +229,7 @@ namespace fsm_cxx {
              typename MutexT = void,
              typename PayloadT = payload_t,
              typename StateT = state_t<S, MutexT>,
-             typename ContextT = context_t<StateT, MutexT>>
+             typename ContextT = context_t<StateT, EventT, MutexT, PayloadT>>
     class action_t {
     public:
         using State = StateT;
@@ -193,6 +257,13 @@ namespace fsm_cxx {
             _f = fsm_cxx::util::cool::bind_tie<4>(std::forward<_Callable>(f), std::forward<_Args>(args)..., _1, _2, _3, _4);
         }
 
+        /**
+         * @brief forward the event and state transition
+         * @param ev the event entity
+         * @param ctx context of the state machine, including the transition guards
+         * @param next_or_prev prev state for entry_action; or next state for exit_action
+         * @param payload 
+         */
         void operator()(EventT const &ev, Context &ctx, State const &next_or_prev, Payload const &payload) const {
             if (_f) _f(ev, ctx, next_or_prev, payload);
         }
@@ -253,7 +324,7 @@ namespace fsm_cxx { namespace detail {
              typename MutexT = void,
              typename PayloadT = payload_t,
              typename StateT = state_t<S, MutexT>,
-             typename ContextT = context_t<StateT, MutexT>,
+             typename ContextT = context_t<StateT, EventT, MutexT, PayloadT>,
              typename ActionT = action_t<S, EventT, MutexT, PayloadT, StateT, ContextT>>
     struct actions_t {
         ActionT entry_action;
@@ -275,7 +346,7 @@ namespace fsm_cxx { namespace detail {
              typename MutexT = void,
              typename PayloadT = payload_t,
              typename StateT = state_t<S, MutexT>,
-             typename ContextT = context_t<StateT, MutexT>,
+             typename ContextT = context_t<StateT, EventT, MutexT, PayloadT>,
              typename ActionT = action_t<S, EventT, MutexT, PayloadT, StateT, ContextT>>
     struct trans_item_t {
         using State = StateT;
@@ -306,7 +377,7 @@ namespace fsm_cxx {
              typename MutexT = void,
              typename PayloadT = payload_t,
              typename StateT = state_t<S, MutexT>,
-             typename ContextT = context_t<StateT, MutexT>,
+             typename ContextT = context_t<StateT, EventT, MutexT, PayloadT>,
              typename ActionT = action_t<S, EventT, MutexT, PayloadT, StateT, ContextT>>
     struct transition_t {
         using Event = EventT;
@@ -365,7 +436,7 @@ namespace fsm_cxx {
              typename MutexT = void, // or std::mutex
              typename PayloadT = payload_t,
              typename StateT = state_t<S>,
-             typename ContextT = context_t<StateT, MutexT>,
+             typename ContextT = context_t<StateT, EventT, MutexT, PayloadT>,
              typename ActionT = action_t<S, EventT, MutexT, PayloadT, StateT, ContextT>,
              typename CharT = char,
              typename InT = std::basic_istream<CharT>>
@@ -410,8 +481,14 @@ namespace fsm_cxx {
             return (*this);
         }
 
+        template<typename _Callable, typename... _Args>
+        machine_t &add_guard(State const &st, _Callable &&f, _Args &&...args) {
+            _ctx.add_guard(st, std::forward<_Callable>(f), std::forward<_Args>(args)...);
+            return (*this);
+        }
+
         machine_t &reset() {
-            _ctx.current = _initial;
+            _ctx.reset(_initial);
             return (*this);
         }
 
@@ -452,6 +529,9 @@ namespace fsm_cxx {
                 auto [ok, itr] = tr.get(event_name);
                 if (ok) {
                     locker.unlock();
+
+                    if (!_ctx.verify(itr.to, ev, payload))
+                        return;
 
                     auto leave = _state_actions.find(from);
                     itr.exit_action(ev, _ctx, from, payload);

@@ -48,6 +48,7 @@ namespace fsm_cxx { namespace test {
         machine_t<my_state, event_base> m;
         using M = decltype(m);
 
+        // states
         m.initial(my_state::Initial)
                 .terminated(my_state::Terminated)
                 .error(my_state::Error, [](event_base const &, M::Context &, M::State const &, M::Payload const &) { std::cerr << "          .. <error> entering" << '\n'; })
@@ -60,6 +61,7 @@ namespace fsm_cxx { namespace test {
                         [](event_base const &, M::Context &, M::State const &, M::Payload const &) { std::cout << "          .. <closed> entering" << '\n'; },
                         [](event_base const &, M::Context &, M::State const &, M::Payload const &) { std::cout << "          .. <closed> exiting" << '\n'; });
 
+        // transistions
         m.transition(my_state::Initial, begin{}, my_state::Closed)
                 .transition(
                         my_state::Closed, open{}, my_state::Opened,
@@ -71,6 +73,9 @@ namespace fsm_cxx { namespace test {
                      M::Transition{end{}, my_state::Terminated,
                                    [](event_base const &, M::Context &, M::State const &, M::Payload const &) { std::cout << "          .. <T><END>" << '\n'; },
                                    nullptr});
+
+        // guards
+        m.add_guard(my_state::Opened, [](event_base const &, M::Context &, M::State const &, M::Payload const &) -> bool { return true; });
 
         // debug log
         m.on_action_for_debug([&m](auto const &from, auto const &ev, auto const &to, auto const &actions, auto const &payload) {
@@ -85,11 +90,11 @@ namespace fsm_cxx { namespace test {
         m.step_by(close{});
         m.step_by(open{});
         m.step_by(end{});
-        
+
         std::printf("---- END OF test_state_meta()\n\n\n");
     }
 
-    // TODO 1. hierarchical state, 2. input action (transit condition/transition guard)
+    // TODO 1. hierarchical state
 
     AWESOME_MAKE_ENUM(calculator,
                       Empty,
@@ -136,7 +141,7 @@ namespace fsm_cxx { namespace test {
         m.step_by(close{});
         m.step_by(open{});
         m.step_by(end{});
-        
+
         std::printf("---- END OF test_state_meta_2()\n\n\n");
     }
 }} // namespace fsm_cxx::test
