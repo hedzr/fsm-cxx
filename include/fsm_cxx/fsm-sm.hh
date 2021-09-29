@@ -88,9 +88,12 @@ namespace fsm_cxx {
     };
 
     struct payload_t {
+        payload_t(bool ok_ = true)
+            : _ok(ok_) {}
         virtual ~payload_t() {}
         virtual std::string to_string() const { return "a payload"; }
         friend std::ostream &operator<<(std::ostream &os, payload_t const &o) { return os << o.to_string(); }
+        bool _ok;
     };
 } // namespace fsm_cxx
 
@@ -447,6 +450,12 @@ namespace fsm_cxx {
         machine_t(machine_t const &) = default;
         machine_t &operator=(machine_t &) = delete;
 
+        enum class Reason {
+            Unknown,
+            FailureGuard,
+            StateNotFound,
+        };
+
         using Event = EventT;
         using State = StateT;
         using Context = ContextT;
@@ -456,6 +465,7 @@ namespace fsm_cxx {
         using Transition = transition_t<S, EventT, MutexT, PayloadT, StateT, ContextT, ActionT>;
         using TransitionTable = std::unordered_map<StateT, Transition>;
         using OnAction = std::function<void(StateT const &, std::string const &, StateT const &, typename Transition::Second const &, Payload const &)>;
+        using OnErrorAction = std::function<void(Reason reason, State const &, Context &, Event const &, Payload const &)>;
         using StateActions = std::unordered_map<StateT, Actions>;
         using lock_guard_t = util::cool::lock_guard<MutexT>;
 
@@ -512,26 +522,35 @@ namespace fsm_cxx {
                 it->second.add(transition);
             return (*this);
         }
+
         machine_t &on_action_for_debug(OnAction &&fn) {
             _on_action = fn;
             return (*this);
         }
+        machine_t &on_error(OnErrorAction &&fn) {
+            _on_error = fn;
+            return (*this);
+        }
 
     public:
-        void step_by(Event const &ev) { step_by(ev, Payload{}); }
-        void step_by(Event const &ev, Payload const &payload) {
+        bool step_by(Event const &ev) { return step_by(ev, Payload{}); }
+        bool step_by(Event const &ev, Payload const &payload) {
             std::string event_name{fsm_cxx::debug::type_name<Event>()};
+            auto reason = Reason::StateNotFound;
 
+            typename TransitionTable::iterator it;
             lock_guard_t locker;
             auto &from = _ctx.current(); // reentrant is ok on the same lock/mutex.
-            if (auto it = _trans_tbl.find(from); it != _trans_tbl.end()) {
+            while ((it = _trans_tbl.find(from)) != _trans_tbl.end()) {
                 auto &tr = it->second;
                 auto [ok, itr] = tr.get(event_name);
                 if (ok) {
                     locker.unlock();
 
-                    if (!_ctx.verify(itr.to, ev, payload))
-                        return;
+                    if (!_ctx.verify(itr.to, ev, payload)) {
+                        reason = Reason::FailureGuard;
+                        break;
+                    }
 
                     auto leave = _state_actions.find(from);
                     itr.exit_action(ev, _ctx, from, payload);
@@ -548,8 +567,12 @@ namespace fsm_cxx {
 
                     // UNUSED(actions);
                     // fsm_debug("        [%s] -- %s --> [%s]", state_to_sting(_ctx.current).c_str(), event_name.c_str(), state_to_sting(to).c_str());
+                    return true;
                 }
             }
+            if (_on_error)
+                _on_error(reason, from, _ctx, ev, payload);
+            return false;
         }
 
     public:
@@ -573,9 +596,10 @@ namespace fsm_cxx {
         ContextT _ctx{};
         StateT _initial{}, _terminated{}, _error{};
         TransitionTable _trans_tbl{};
-        OnAction _on_action{};
-        StateActions _state_actions{};
-    }; // class machine_t
+        OnAction _on_action{}; // for debugging
+        OnErrorAction _on_error{};
+        StateActions _state_actions{}; // entry/exit actions for states
+    };                                 // class machine_t
 
 } // namespace fsm_cxx
 
