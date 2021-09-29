@@ -89,7 +89,7 @@ namespace fsm_cxx { namespace test {
         std::printf("---- END OF test_state_meta()\n\n\n");
     }
 
-    // TODO 1. hierarchical state
+    // TODO 1. hierarchical state, 2. input action (transit condition/transition guard)
 
     AWESOME_MAKE_ENUM(calculator,
                       Empty,

@@ -46,6 +46,8 @@
 
 #include <math.h>
 
+
+// ----------------------------- forward declarations
 namespace fsm_cxx {
 
     enum class state_e {
@@ -56,9 +58,10 @@ namespace fsm_cxx {
 
     template<typename T, typename MutexT = void>
     struct state_t;
+
 } // namespace fsm_cxx
 
-// event_t
+// ----------------------------- event_t, payload_t
 namespace fsm_cxx {
     struct dummy_event {};
 
@@ -73,6 +76,7 @@ namespace fsm_cxx {
             : eo(std::move(t)) {}
         event_t(event_t const &t)
             : eo(t.eo) {}
+        ~event_t() {}
 
         bool operator==(EventT const &t) const { return typeid(eo) == typeid(t); }
         bool operator==(event_t const &t) const { return typeid(eo) == typeid(t.eo); }
@@ -84,24 +88,40 @@ namespace fsm_cxx {
     };
 
     struct payload_t {
-        ~payload_t() {}
-        friend std::ostream &operator<<(std::ostream &os, payload_t const &) { return os << "a payload"; }
+        virtual ~payload_t() {}
+        virtual std::string to_string() const { return "a payload"; }
+        friend std::ostream &operator<<(std::ostream &os, payload_t const &o) { return os << o.to_string(); }
     };
 } // namespace fsm_cxx
 
-// context_t
+// ----------------------------- context_t
 namespace fsm_cxx {
     template<typename State, typename MutexT = void>
     struct context_t {
-        // while you're extending from context_t, take a 
+        // while you're extending from context_t, take a
         // little concerns to lock_guard_t for thread-safety
         using lock_guard_t = util::cool::lock_guard<MutexT>;
 
-        State current;
+        void current(State s) {
+            lock_guard_t l;
+            _current = s;
+        }
+        State const &current() const { return _current; }
+        State safe_current() const {
+            State tmp;
+            {
+                lock_guard_t l;
+                tmp = _current;
+            }
+            return tmp;
+        }
+
+    private:
+        State _current{};
     };
 } // namespace fsm_cxx
 
-// state_t
+// ----------------------------- state_t
 namespace fsm_cxx {
 
     template<typename T, typename MutexT>
@@ -132,7 +152,7 @@ namespace fsm_cxx {
 
 } // namespace fsm_cxx
 
-// action_t
+// ----------------------------- action_t
 namespace fsm_cxx {
 
     template<typename S,
@@ -180,7 +200,7 @@ namespace fsm_cxx {
 
 } // namespace fsm_cxx
 
-// links_t
+// ----------------------------- links_t
 namespace fsm_cxx { namespace detail {
     template<typename State>
     struct links_t {
@@ -197,7 +217,7 @@ namespace fsm_cxx { namespace detail {
     };
 }} // namespace fsm_cxx::detail
 
-// hash for state_t/links_t
+// ----------------------------- hash for state_t/links_t
 namespace std {
     template<typename State, typename MutexT>
     struct hash<fsm_cxx::state_t<State, MutexT>> {
@@ -221,7 +241,7 @@ namespace std {
     };
 } // namespace std
 
-// actions_t
+// ----------------------------- actions_t
 namespace fsm_cxx { namespace detail {
     template<typename S,
              typename EventT = dummy_event,
@@ -243,7 +263,7 @@ namespace fsm_cxx { namespace detail {
     };
 }} // namespace fsm_cxx::detail
 
-// trans_item_t
+// ----------------------------- trans_item_t
 namespace fsm_cxx { namespace detail {
     template<typename S,
              typename EventT = dummy_event,
@@ -273,6 +293,7 @@ namespace fsm_cxx { namespace detail {
     };
 }} // namespace fsm_cxx::detail
 
+// ----------------------------- transition_t
 namespace fsm_cxx {
 
     template<typename S,
@@ -329,6 +350,11 @@ namespace fsm_cxx {
         }
     };
 
+} // namespace fsm_cxx
+
+// ----------------------------- machine_t
+namespace fsm_cxx {
+
     template<typename S,
              typename EventT = dummy_event,
              typename MutexT = void, // or std::mutex
@@ -359,7 +385,7 @@ namespace fsm_cxx {
 
     public:
         machine_t &initial(S st, ActionT &&entry_action = nullptr, ActionT &&exit_action = nullptr) {
-            _initial = _ctx.current = st;
+            _ctx.current(_initial = st);
             return state(st, std::move(entry_action), std::move(exit_action));
         }
         machine_t &terminated(S st, ActionT &&entry_action = nullptr, ActionT &&exit_action = nullptr) {
@@ -414,12 +440,11 @@ namespace fsm_cxx {
             std::string event_name{fsm_cxx::debug::type_name<Event>()};
 
             lock_guard_t locker;
-            if (auto it = _trans_tbl.find(_ctx.current); it != _trans_tbl.end()) {
+            auto &from = _ctx.current(); // reentrant is ok on the same lock/mutex.
+            if (auto it = _trans_tbl.find(from); it != _trans_tbl.end()) {
                 auto &tr = it->second;
                 auto [ok, itr] = tr.get(event_name);
                 if (ok) {
-                    auto &from = _ctx.current;
-
                     locker.unlock();
 
                     auto leave = _state_actions.find(from);
@@ -427,7 +452,7 @@ namespace fsm_cxx {
                     if (leave != _state_actions.end())
                         leave->second.exit_action(ev, _ctx, itr.to, payload);
 
-                    _ctx.current = itr.to;
+                    _ctx.current(itr.to);
                     if (_on_action) _on_action(from, event_name, itr.to, itr, payload);
 
                     auto enter = _state_actions.find(itr.to);
