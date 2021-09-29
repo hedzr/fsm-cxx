@@ -93,6 +93,8 @@ namespace fsm_cxx {
 namespace fsm_cxx {
     template<typename State, typename MutexT = void>
     struct context_t {
+        // while you're extending from context_t, take a 
+        // little concerns to lock_guard_t for thread-safety
         using lock_guard_t = util::cool::lock_guard<MutexT>;
 
         State current;
@@ -106,8 +108,6 @@ namespace fsm_cxx {
     struct state_t {
         using State = state_t<T, MutexT>;
         using Context = context_t<State, MutexT>;
-        // template<typename EventT>
-        // using FN = std::function<void(event_t<EventT> const &ev, Context &ctx, State const &next_or_prev)>;
 
         T t{};
         // template<typename EventT>
@@ -128,11 +128,6 @@ namespace fsm_cxx {
         bool operator==(state_t const &o) const { return t == o.t; }
         bool operator==(T const &o) const { return t == o; }
         friend std::ostream &operator<<(std::ostream &os, state_t const &o) { return os << o.t; }
-
-        // template<typename EventT>
-        // void on_enter(event_t<EventT> const &ev, Context &ctx, State const &next_or_prev) { UNUSED(ev, ctx, next_or_prev); }
-        // template<typename EventT>
-        // void on_exit(event_t<EventT> const &ev, Context &ctx, State const &next_or_prev) { UNUSED(ev, ctx, next_or_prev); }
     };
 
 } // namespace fsm_cxx
