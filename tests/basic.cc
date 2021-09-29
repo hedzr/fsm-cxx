@@ -73,7 +73,7 @@ namespace fsm_cxx { namespace test {
                                    nullptr});
 
         // debug log
-        m.on_action_for_debug([m](auto const &from, auto const &ev, auto const &to, auto const &actions, auto const &payload) {
+        m.on_action_for_debug([&m](auto const &from, auto const &ev, auto const &to, auto const &actions, auto const &payload) {
             std::printf("        [%s] -- %s --> [%s] (payload = %s)\n", m.state_to_sting(from).c_str(), ev.c_str(), m.state_to_sting(to).c_str(), to_string(payload).c_str());
             UNUSED(actions);
         });
@@ -87,7 +87,7 @@ namespace fsm_cxx { namespace test {
         m.step_by(end{});
     }
 
-    // TODO 1. thread safe, 2. hierarchical state, 3. payload
+    // TODO 1. thread safe, 2. hierarchical state
 
     AWESOME_MAKE_ENUM(calculator,
                       Empty,
@@ -122,7 +122,7 @@ namespace fsm_cxx { namespace test {
                                    nullptr});
 
         // debug log
-        m.on_action_for_debug([m](auto const &from, auto const &ev, auto const &to, auto const &actions, auto const &payload) {
+        m.on_action_for_debug([&m](auto const &from, auto const &ev, auto const &to, auto const &actions, auto const &payload) {
             std::printf("        [%s] -- %s --> [%s] (payload: %s)\n", m.state_to_sting(from).c_str(), ev.c_str(), m.state_to_sting(to).c_str(), to_string(payload).c_str());
             UNUSED(actions);
         });

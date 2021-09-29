@@ -2,11 +2,11 @@
 // Created by Hedzr Yeh on 2021/9/26.
 //
 
-#ifndef FSM_CXX_FSM_COMMON_HH
-#define FSM_CXX_FSM_COMMON_HH
+#ifndef _PRIVATE_VAR_FOLDERS_0K_1RQY3K4X7_5B_73SW5PY2BW00000GN_T_CLION_CLANG_TIDY_FSM_COMMON_HH
+#define _PRIVATE_VAR_FOLDERS_0K_1RQY3K4X7_5B_73SW5PY2BW00000GN_T_CLION_CLANG_TIDY_FSM_COMMON_HH
 
-#include <string>
 #include <sstream>
+#include <string>
 
 // ------------------- cool::bind_tie
 namespace fsm_cxx::util::cool {
@@ -56,7 +56,7 @@ namespace fsm_cxx::util::cool {
 
 // ------------------- fsm_cxx::to_string
 namespace fsm_cxx {
-    
+
     template<typename T>
     inline std::string to_string(T const &t) {
         std::stringstream ss;
@@ -83,6 +83,6 @@ namespace fsm_cxx {
         return ss.str();
     }
 
-} // namespace hicc
+} // namespace fsm_cxx
 
-#endif //FSM_CXX_FSM_COMMON_HH
+#endif // _PRIVATE_VAR_FOLDERS_0K_1RQY3K4X7_5B_73SW5PY2BW00000GN_T_CLION_CLANG_TIDY_FSM_COMMON_HH

@@ -2,8 +2,8 @@
 // Created by Hedzr Yeh on 2021/9/26.
 //
 
-#ifndef FSM_CXX_FSM_DEBUG_HH
-#define FSM_CXX_FSM_DEBUG_HH
+#ifndef _PRIVATE_VAR_FOLDERS_0K_1RQY3K4X7_5B_73SW5PY2BW00000GN_T_CLION_CLANG_TIDY_FSM_DEBUG_HH
+#define _PRIVATE_VAR_FOLDERS_0K_1RQY3K4X7_5B_73SW5PY2BW00000GN_T_CLION_CLANG_TIDY_FSM_DEBUG_HH
 
 #include <string>
 #include <vector>
@@ -93,9 +93,9 @@ namespace fsm_cxx { namespace debug {
         return function.substr(start, (end - start));
     }
 
-    template<std::size_t... Idxs>
-    constexpr auto substring_as_array(std::string_view str, std::index_sequence<Idxs...>) {
-        return std::array{str[Idxs]..., '\n'};
+    template<std::size_t... Indexes>
+    constexpr auto substring_as_array(std::string_view str, std::index_sequence<Indexes...>) {
+        return std::array{str[Indexes]..., '\n'};
     }
 
     template<typename T>
@@ -160,7 +160,7 @@ namespace fsm_cxx { namespace debug {
      * 
      * 2. wrap the string_view into a std::string:
      * @code{c++}
-     * std::cout << std::string(hicc::debug::type_name&lt;std::string>()) << '\n';
+     * std::cout &lt;&lt; std::string(hicc::debug::type_name&lt;std::string>()) &lt;&lt; '\n';
      * printf(">>> %s\n", std::string(hicc::debug::type_name&lt;std::string>()).c_str());
      * @endcode
      * 
@@ -246,20 +246,20 @@ namespace fsm_cxx { namespace debug {
     template<int max_frames = 63>
     static inline std::vector<std::string> save_stacktrace(int skip = 1) {
         void *addrlist[max_frames + 1];
-        int addrlen = backtrace(addrlist, sizeof(addrlist) / sizeof(void *));
+        int address_len = backtrace(addrlist, sizeof(addrlist) / sizeof(void *));
         std::vector<std::string> ret;
-        if (addrlen == 0) {
+        if (address_len == 0) {
             fprintf(stderr, "  <empty, possibly corrupt>\n");
             return ret;
         }
 
-        char **symbollist = backtrace_symbols(addrlist, addrlen);
+        char **symbol_list = backtrace_symbols(addrlist, address_len);
 
-        for (int i = 1 + skip; i < addrlen; i++) {
-            ret.emplace_back(symbollist[i]);
+        for (int i = 1 + skip; i < address_len; i++) {
+            ret.emplace_back(symbol_list[i]);
         }
 
-        free(symbollist);
+        free(symbol_list);
         return ret;
     }
 
@@ -280,16 +280,16 @@ namespace fsm_cxx { namespace debug {
         void *addrlist[max_frames + 1];
 
         // retrieve current stack addresses
-        int addrlen = backtrace(addrlist, sizeof(addrlist) / sizeof(void *));
+        int address_len = backtrace(addrlist, sizeof(addrlist) / sizeof(void *));
 
-        if (addrlen == 0) {
+        if (address_len == 0) {
             fprintf(out, "  <empty, possibly corrupt>\n");
             return;
         }
 
         // resolve addresses into strings containing "filename(function+address)",
         // this array must be free()-ed
-        char **symbollist = backtrace_symbols(addrlist, addrlen);
+        char **symbol_list = backtrace_symbols(addrlist, address_len);
 
         // allocate string which will be filled with the demangled function name
         size_t funcnamesize = 256;
@@ -297,12 +297,12 @@ namespace fsm_cxx { namespace debug {
 
         // iterate over the returned symbol lines. skip the first, it is the
         // address of this function.
-        for (int i = 1 + skip; i < addrlen; i++) {
+        for (int i = 1 + skip; i < address_len; i++) {
             char *begin_name = nullptr, *begin_offset = nullptr, *end_offset = nullptr;
 
             // find parentheses and +address offset surrounding the mangled name:
             // ./module(function+0x15c) [0x8048a6d]
-            for (char *p = symbollist[i]; *p; ++p) {
+            for (char *p = symbol_list[i]; *p; ++p) {
                 if (*p == '(')
                     begin_name = p;
                 else if (*p == '+')
@@ -318,7 +318,7 @@ namespace fsm_cxx { namespace debug {
                 begin_name = nullptr;
                 begin_offset = nullptr;
                 // clang: "0   test-app2-c2        0x000000010541a2cc _ZN4cmdr5debugL16print_stacktraceILi63EEEvP7__sFILE + 76"
-                for (char *p = symbollist[i]; *p; ++p) {
+                for (char *p = symbol_list[i]; *p; ++p) {
                     if (p[1] == 0 && begin_offset)
                         end_offset = p + 1;
                     else if (*p == ' ') {
@@ -352,21 +352,21 @@ namespace fsm_cxx { namespace debug {
                 if (status == 0) {
                     funcname = ret; // use possibly realloc()-ed string
                     fprintf(out, "  %s : %s+%s\n",
-                            symbollist[i], funcname, begin_offset);
+                            symbol_list[i], funcname, begin_offset);
                 } else {
                     // demangling failed. Output function name as a C function with
                     // no arguments.
                     fprintf(out, "  %s : %s()+%s\n",
-                            symbollist[i], begin_name, begin_offset);
+                            symbol_list[i], begin_name, begin_offset);
                 }
             } else {
                 // couldn't parse the line? print the whole line.
-                fprintf(out, "  %s\n", symbollist[i]);
+                fprintf(out, "  %s\n", symbol_list[i]);
             }
         }
 
         free(funcname);
-        free(symbollist);
+        free(symbol_list);
     }
     static inline void print_stacktrace(std::vector<std::string> const &st, FILE *out = stderr) {
         fprintf(out, "stack trace:\n");
@@ -448,4 +448,4 @@ namespace fsm_cxx { namespace debug {
 }} // namespace fsm_cxx::debug
 
 
-#endif //FSM_CXX_FSM_DEBUG_HH
+#endif // _PRIVATE_VAR_FOLDERS_0K_1RQY3K4X7_5B_73SW5PY2BW00000GN_T_CLION_CLANG_TIDY_FSM_DEBUG_HH

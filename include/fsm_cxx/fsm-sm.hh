@@ -366,6 +366,8 @@ namespace fsm_cxx {
     public:
         machine_t() {}
         ~machine_t() {}
+        machine_t(machine_t const &) = default;
+        machine_t &operator=(machine_t &) = delete;
 
         using Event = EventT;
         using State = StateT;
@@ -481,6 +483,7 @@ namespace fsm_cxx {
         TransitionTable _trans_tbl{};
         OnAction _on_action{};
         StateActions _state_actions{};
+        std::mutex _mu;
     }; // class machine_t
 
 } // namespace fsm_cxx

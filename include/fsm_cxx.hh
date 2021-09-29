@@ -2,8 +2,8 @@
 // Created by Hedzr Yeh on 2021/9/26.
 //
 
-#ifndef FSM_CXX_FSM_CXX_HH
-#define FSM_CXX_FSM_CXX_HH
+#ifndef FSM_CXX_HH
+#define FSM_CXX_HH
 
 #pragma once
 
@@ -22,4 +22,4 @@
 #include "fsm_cxx/detail/fsm-if.hh"
 
 
-#endif // FSM_CXX_FSM_CXX_HH
+#endif // FSM_CXX_HH
