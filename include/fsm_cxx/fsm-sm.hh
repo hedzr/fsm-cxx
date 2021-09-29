@@ -434,6 +434,11 @@ namespace fsm_cxx {
 // ----------------------------- machine_t
 namespace fsm_cxx {
 
+    AWESOME_MAKE_ENUM(Reason,
+                      Unknown,
+                      FailureGuard,
+                      StateNotFound)
+
     template<typename S,
              typename EventT = dummy_event,
              typename MutexT = void, // or std::mutex
@@ -449,12 +454,6 @@ namespace fsm_cxx {
         ~machine_t() {}
         machine_t(machine_t const &) = default;
         machine_t &operator=(machine_t &) = delete;
-
-        enum class Reason {
-            Unknown,
-            FailureGuard,
-            StateNotFound,
-        };
 
         using Event = EventT;
         using State = StateT;
