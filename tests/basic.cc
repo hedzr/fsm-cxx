@@ -43,7 +43,7 @@ namespace fsm_cxx { namespace test {
     };
     FSM_DEFINE_EVENT(end);
     FSM_DEFINE_EVENT(open);
-    FSM_DEFINE_EVENT(closed);
+    FSM_DEFINE_EVENT(close);
 #else
     struct event_base {};
     struct begin : public event_base {};
