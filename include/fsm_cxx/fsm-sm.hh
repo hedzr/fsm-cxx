@@ -279,7 +279,15 @@ namespace fsm_cxx {
                                   int> = 0>
         action_t(_Callable &&f, _Args &&...args) {
             using namespace std::placeholders;
-            _f = fsm_cxx::util::cool::bind_tie<4>(std::forward<_Callable>(f), std::forward<_Args>(args)..., _1, _2, _3, _4);
+            constexpr auto count = 4;
+            _f = fsm_cxx::util::cool::bind_tie<count>(std::forward<_Callable>(f), std::forward<_Args>(args)..., _1, _2, _3, _4);
+        }
+
+        template<typename _Callable, typename... _Args>
+        void update(_Callable &&f, _Args &&...args) {
+            using namespace std::placeholders;
+            constexpr auto count = 4;
+            _f = fsm_cxx::util::cool::bind_tie<count>(std::forward<_Callable>(f), std::forward<_Args>(args)..., _1, _2, _3, _4);
         }
 
         /**
@@ -607,16 +615,18 @@ namespace fsm_cxx {
                 to = to_;
                 return (*this);
             }
-            transition_builder &guard(Guard &&guard_) {
-                guard_fn = guard_;
+            transition_builder &guard(Guard &&fn) {
+                guard_fn = std::move(fn);
                 return (*this);
             }
-            transition_builder &entry_action(Action &&fn) {
-                entry_fn = fn;
+            template<typename _Callable, typename... _Args>
+            transition_builder &entry_action(_Callable &&f, _Args &&...args) {
+                entry_fn.update(f, args...);
                 return (*this);
             }
-            transition_builder &exit_action(Action &&fn) {
-                exit_fn = fn;
+            template<typename _Callable, typename... _Args>
+            transition_builder &exit_action(_Callable &&f, _Args &&...args) {
+                exit_fn.update(f, args...);
                 return (*this);
             }
         };
