@@ -73,14 +73,16 @@ namespace fsm_cxx { namespace test {
 
         // transistions
         m.transition(my_state::Initial, begin{}, my_state::Closed);
-        m.transition(
-                my_state::Closed, open{}, my_state::Opened,
-                [](M::Event const &, M::Context &, M::State const &, M::Payload const &) { std::cout << "          .. <closed -> opened> entering" << '\n'; },
-                [](M::Event const &, M::Context &, M::State const &, M::Payload const &) { std::cout << "          .. <closed -> opened> exiting" << '\n'; });
+        m.builder()
+                .transition(my_state::Closed, open{}, my_state::Opened)
+                .guard([](M::Event const &, M::Context &, M::State const &, M::Payload const &p) -> bool { return p._ok; })
+                .entry_action([](M::Event const &, M::Context &, M::State const &, M::Payload const &) { std::cout << "          .. <closed -> opened> entering" << '\n'; })
+                .exit_action([](M::Event const &, M::Context &, M::State const &, M::Payload const &) { std::cout << "          .. <closed -> opened> exiting" << '\n'; })
+                .build();
         m.transition(my_state::Opened, close{}, my_state::Closed)
                 .transition(my_state::Closed, end{}, my_state::Terminated);
         m.transition(my_state::Opened,
-                     M::Transition{end{}, my_state::Terminated,
+                     M::Transition{end{}, my_state::Terminated, nullptr,
                                    [](M::Event const &, M::Context &, M::State const &, M::Payload const &) { std::cout << "          .. <T><END>" << '\n'; },
                                    nullptr});
 
@@ -135,13 +137,13 @@ namespace fsm_cxx { namespace test {
                 .error(my_state::Error);
         m.transition(my_state::Initial, begin{}, my_state::Closed)
                 .transition(
-                        my_state::Closed, open{}, my_state::Opened,
+                        my_state::Closed, open{}, my_state::Opened, nullptr,
                         [](M::Event const &, M::Context &, M::State const &, M::Payload const &) { std::cout << "          .. <closed -> opened> entering" << '\n'; },
                         [](M::Event const &, M::Context &, M::State const &, M::Payload const &) { std::cout << "          .. <closed -> opened> exiting" << '\n'; })
                 .transition(my_state::Opened, close{}, my_state::Closed)
                 .transition(my_state::Closed, end{}, my_state::Terminated);
         m.transition(my_state::Opened,
-                     M::Transition{end{}, my_state::Terminated,
+                     M::Transition{end{}, my_state::Terminated, nullptr,
                                    [](M::Event const &, M::Context &, M::State const &, M::Payload const &) { std::cout << "          .. <T><END>" << '\n'; },
                                    nullptr});
 

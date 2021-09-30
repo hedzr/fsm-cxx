@@ -67,7 +67,7 @@ namespace fsm_cxx {
 
     struct event_t {
         virtual ~event_t() {}
-        virtual std::string to_string() const = 0;
+        virtual std::string to_string() const { return ""; }
     };
     template<typename T>
     struct event_type : public event_t {
@@ -128,8 +128,8 @@ namespace fsm_cxx {
         using lock_guard_t = util::cool::lock_guard<MutexT>;
         // using Event = event_t<EventT>;
         using Payload = PayloadT;
-        using Ctx = context_t<State, EventT, MutexT, Payload>;
-        using Pred = std::function<bool(EventT const &, Ctx &, State const &, Payload const &)>;
+        using Context = context_t<State, EventT, MutexT, Payload>;
+        using Pred = std::function<bool(EventT const &, Context &, State const &, Payload const &)>;
         using Preds = std::vector<Pred>;
         using First = State;
         using Second = Preds;
@@ -378,17 +378,26 @@ namespace fsm_cxx { namespace detail {
         using Context = ContextT;
         using Payload = PayloadT;
         using Action = ActionT;
+        using Guard = std::function<bool(EventT const &, Context &, StateT const &, Payload const &)>;
 
+        Guard pred{nullptr}; // Transition Guard here
         State to{};
         Action entry_action{nullptr};
         Action exit_action{nullptr};
 
-        trans_item_t(State const &st = State{}, Action &&entry = nullptr, Action &&exit = nullptr)
-            : to(st)
+        bool verify(EventT const &ev, Context &c, Payload const &p) const {
+            if (pred) return pred(ev, c, to, p);
+            return true;
+        }
+
+        trans_item_t(State const &st = State{}, Guard &&p = nullptr, Action &&entry = nullptr, Action &&exit = nullptr)
+            : pred(p)
+            , to(st)
             , entry_action(std::move(entry))
             , exit_action(std::move(exit)) {}
         trans_item_t(trans_item_t const &o)
-            : to(o.to)
+            : pred(o.pred)
+            , to(o.to)
             , entry_action(o.entry_action)
             , exit_action(o.exit_action) {}
     };
@@ -410,44 +419,62 @@ namespace fsm_cxx {
         using Context = ContextT;
         using Payload = PayloadT;
         using Action = ActionT;
-        using First = std::string;
-        using Second = detail::trans_item_t<S, EventT, MutexT, PayloadT, StateT, ContextT, ActionT>;
+        using First = std::string; // event_name
+        using Item = detail::trans_item_t<S, EventT, MutexT, PayloadT, StateT, ContextT, ActionT>;
+        using Second = std::vector<Item>;
         using Maps = std::unordered_map<First, Second>;
+        using Guard = typename Item::Guard;
 
         Maps m_;
 
         transition_t() {}
         ~transition_t() {}
 
-        // template<typename Event>
-        transition_t(Event const &, S const &to, ActionT &&entry = nullptr, ActionT &&exit = nullptr) {
-            std::string event_name{fsm_cxx::debug::type_name<Event>()};
-            m_.emplace(std::move(First{event_name}), std::move(Second{StateT{to}, std::move(entry), std::move(exit)}));
+        template<typename Evt,
+                 std::enable_if_t<std::is_base_of<Event, std::decay_t<Evt>>::value && !std::is_same<Evt, std::string>::value, bool> = true>
+        transition_t(Evt const &, S const &to, Guard &&p = nullptr, ActionT &&entry = nullptr, ActionT &&exit = nullptr) {
+            std::string event_name{fsm_cxx::debug::type_name<Evt>()};
+            Second s;
+            s.emplace_back(StateT{to}, std::move(p), std::move(entry), std::move(exit));
+            m_.emplace(std::move(First{event_name}), std::move(s));
         }
-        // template<typename Event>
-        transition_t(Event const &, StateT const &to, ActionT &&entry = nullptr, ActionT &&exit = nullptr) {
-            std::string event_name{fsm_cxx::debug::type_name<Event>()};
-            m_.emplace(std::move(First{event_name}), std::move(Second{to, std::move(entry), std::move(exit)}));
+        template<typename Evt,
+                 std::enable_if_t<std::is_same<Evt, Event>::value && !std::is_same<Evt, std::string>::value, bool> = true>
+        transition_t(Evt const &, StateT const &to, Guard &&p = nullptr, ActionT &&entry = nullptr, ActionT &&exit = nullptr) {
+            std::string event_name{fsm_cxx::debug::type_name<Evt>()};
+            Second s;
+            s.emplace_back(to, std::move(p), std::move(entry), std::move(exit));
+            m_.emplace(std::move(First{event_name}), std::move(s));
         }
-        transition_t(std::string const &event_name, StateT const &to, ActionT &&entry = nullptr, ActionT &&exit = nullptr) {
-            m_.emplace(std::move(First{event_name}), std::move(Second{to, std::move(entry), std::move(exit)}));
+        transition_t(std::string const &event_name, StateT const &to, Guard &&p = nullptr, ActionT &&entry = nullptr, ActionT &&exit = nullptr) {
+            Second s;
+            s.emplace_back(to, std::move(p), std::move(entry), std::move(exit));
+            m_.emplace(std::move(First{event_name}), std::move(s));
         }
+
         void add(transition_t &&t) {
-            for (auto &[k, v] : t.m_)
-                m_.emplace(k, v);
+            for (auto &[k, v] : t.m_) {
+                if (auto it = m_.find(k); it == m_.end())
+                    m_.emplace(k, v);
+                else
+                    for (auto &z : v)
+                        it->second.emplace_back(std::move(z));
+            }
         }
-        void add(transition_t const &t) {
-            for (auto const &[k, v] : t.m_)
-                m_.insert({k, v});
-        }
-        std::tuple<bool, Second const &> get(std::string const &event_name) const { return _get(event_name); }
-        std::tuple<bool, Second &> get(std::string const &event_name) { return _get(event_name); }
-        std::tuple<bool, Second &> _get(std::string const &event_name) {
+
+    public:
+        std::tuple<bool, Item const &> get(std::string const &event_name, EventT const &ev, Context &ctx, Payload const &payload) const { return _get(event_name, ev, ctx, payload); }
+        std::tuple<bool, Item &> get(std::string const &event_name, EventT const &ev, Context &ctx, Payload const &payload) { return _get(event_name, ev, ctx, payload); }
+        std::tuple<bool, Item &> _get(std::string const &event_name, EventT const &ev, Context &ctx, Payload const &payload) {
             auto it = m_.find(event_name);
-            if (it != m_.end())
-                return std::tuple<bool, Second &>{true, it->second};
-            static Second s2{};
-            return std::tuple<bool, Second &>{false, s2};
+            if (it != m_.end()) {
+                for (auto &v : it->second) {
+                    if (v.verify(ev, ctx, payload))
+                        return std::tuple<bool, Item &>{true, v};
+                }
+            }
+            static Item s2{};
+            return std::tuple<bool, Item &>{false, s2};
         }
     };
 
@@ -485,10 +512,11 @@ namespace fsm_cxx {
         using Actions = detail::actions_t<S, Event, MutexT, Payload, State, Context, Action>;
         using Transition = transition_t<S, Event, MutexT, Payload, State, Context, Action>;
         using TransitionTable = std::unordered_map<State, Transition>;
-        using OnAction = std::function<void(State const &, Event const &, State const &, typename Transition::Second const &, Payload const &)>;
+        using OnAction = std::function<void(State const &, Event const &, State const &, typename Transition::Item const &, Payload const &)>;
         using OnErrorAction = std::function<void(Reason reason, State const &, Context &, Event const &, Payload const &)>;
         using StateActions = std::unordered_map<State, Actions>;
         using lock_guard_t = util::cool::lock_guard<MutexT>;
+        using Guard = typename Transition::Guard;
 
     public:
         machine_t &initial(S st, ActionT &&entry_action = nullptr, ActionT &&exit_action = nullptr) {
@@ -523,24 +551,28 @@ namespace fsm_cxx {
             return (*this);
         }
 
-        // template<typename Event = dummy_event>
-        machine_t &transition(S from, Event const &e, S to, ActionT &&entry_action = nullptr, ActionT &&exit_action = nullptr) {
-            // event_t<Event>(e)
-            Transition t{e, to, std::move(entry_action), std::move(exit_action)};
+        template<typename Evt>
+        machine_t &transition(S from, Evt const &, S to, Guard &&p = nullptr, ActionT &&entry_action = nullptr, ActionT &&exit_action = nullptr) {
+            auto event_name = std::string{fsm_cxx::debug::type_name<Evt>()};
+            Transition t{event_name, to, std::move(p), std::move(entry_action), std::move(exit_action)};
             return transition(from, std::move(t));
         }
-        machine_t &transition(S from, Transition &&transition) {
-            if (auto it = _trans_tbl.find(State{from}); it == _trans_tbl.end())
-                _trans_tbl.emplace(State{from}, std::move(transition));
-            else
-                it->second.add(std::move(transition));
-            return (*this);
+        machine_t &transition(S from, Transition &&trans) {
+            State f{from};
+            return transition(f, std::forward<Transition>(trans));
         }
-        machine_t &transition(S from, Transition const &transition) {
-            if (auto it = _trans_tbl.find(State{from}); it == _trans_tbl.end())
-                _trans_tbl.insert({State{from}, transition});
+        // machine_t &transition(S from, Transition const &trans) {
+        //     if (auto it = _trans_tbl.find(State{from}); it == _trans_tbl.end())
+        //         _trans_tbl.insert({State{from}, trans});
+        //     else
+        //         it->second.add(trans);
+        //     return (*this);
+        // }
+        machine_t &transition(State const &from, Transition &&trans) {
+            if (auto it = _trans_tbl.find(from); it == _trans_tbl.end())
+                _trans_tbl.emplace(from, std::move(trans));
             else
-                it->second.add(transition);
+                it->second.add(std::forward<Transition>(trans));
             return (*this);
         }
 
@@ -554,9 +586,56 @@ namespace fsm_cxx {
         }
 
     public:
-        bool step_by(Event const &ev) { return step_by(ev, Payload{}); }
-        bool step_by(Event const &ev, Payload const &payload) {
-            std::string event_name{fsm_cxx::debug::type_name<Event>()};
+        class transition_builder {
+            machine_t &owner;
+            S from{};
+            std::string event_name{};
+            S to{};
+            Guard guard_fn{nullptr};
+            Action entry{nullptr};
+            Action exit{nullptr};
+
+        public:
+            transition_builder(machine_t &tt)
+                : owner(tt) {}
+            void build() { owner.transition(from, Transition{event_name, to, std::move(guard_fn), std::move(entry), std::move(exit)}); }
+            template<typename Evt,
+                     std::enable_if_t<std::is_base_of<Event, std::decay_t<Evt>>::value && !std::is_same<Evt, std::string>::value, bool> = true>
+            transition_builder &transition(S from_, Evt const &, S to_) {
+                from = from_;
+                event_name = std::string{fsm_cxx::debug::type_name<Evt>()};
+                to = to_;
+                return (*this);
+            }
+            transition_builder &guard(Guard &&guard_) {
+                guard_fn = guard_;
+                return (*this);
+            }
+            transition_builder &entry_action(Action &&fn) {
+                entry = fn;
+                return (*this);
+            }
+            transition_builder &exit_action(Action &&fn) {
+                exit = fn;
+                return (*this);
+            }
+        };
+        transition_builder builder() { return transition_builder(*this); }
+
+    public:
+        template<typename Evt,
+                 std::enable_if_t<std::is_base_of<Event, std::decay_t<Evt>>::value && !std::is_same<Evt, std::string>::value, bool> = true>
+        bool step_by(Evt const &ev) {
+            std::string event_name{fsm_cxx::debug::type_name<Evt>()};
+            return step_by(ev, Payload{});
+        }
+        template<typename Evt,
+                 std::enable_if_t<std::is_base_of<Event, std::decay_t<Evt>>::value && !std::is_same<Evt, std::string>::value, bool> = true>
+        bool step_by(Evt const &ev, Payload const &payload) {
+            std::string event_name{fsm_cxx::debug::type_name<Evt>()};
+            return step_by(event_name, ev, payload);
+        }
+        bool step_by(std::string const &event_name, Event const &ev, Payload const &payload) {
             auto reason = Reason::StateNotFound;
 
             typename TransitionTable::iterator it;
@@ -564,25 +643,30 @@ namespace fsm_cxx {
             auto &from = _ctx.current(); // reentrant is ok on the same lock/mutex.
             while ((it = _trans_tbl.find(from)) != _trans_tbl.end()) {
                 auto &tr = it->second;
-                auto [ok, itr] = tr.get(event_name);
+                auto [ok, item] = tr.get(event_name, ev, _ctx, payload);
                 if (ok) {
-                    locker.unlock();
+                    auto &trans = item;
 
-                    if (!_ctx.verify(itr.to, ev, payload)) {
+                    // verify state guards
+                    if (!_ctx.verify(trans.to, ev, payload)) {
                         reason = Reason::FailureGuard;
                         break;
                     }
 
+                    locker.unlock();
+
+                    reason = Reason::Unknown;
                     auto leave = _state_actions.find(from);
-                    itr.exit_action(ev, _ctx, from, payload);
+                    trans.exit_action(ev, _ctx, from, payload);
                     if (leave != _state_actions.end())
-                        leave->second.exit_action(ev, _ctx, itr.to, payload);
+                        leave->second.exit_action(ev, _ctx, trans.to, payload);
 
-                    _ctx.current(itr.to);
-                    if (_on_action) _on_action(from, ev, itr.to, itr, payload);
+                    _ctx.current(trans.to);
+                    if (_on_action)
+                        _on_action(from, ev, trans.to, trans, payload);
 
-                    auto enter = _state_actions.find(itr.to);
-                    itr.entry_action(ev, _ctx, itr.to, payload);
+                    auto enter = _state_actions.find(trans.to);
+                    trans.entry_action(ev, _ctx, trans.to, payload);
                     if (enter != _state_actions.end())
                         enter->second.entry_action(ev, _ctx, from, payload);
 
@@ -590,6 +674,7 @@ namespace fsm_cxx {
                     // fsm_debug("        [%s] -- %s --> [%s]", state_to_sting(_ctx.current).c_str(), event_name.c_str(), state_to_sting(to).c_str());
                     return true;
                 }
+                break;
             }
             if (_on_error)
                 _on_error(reason, from, _ctx, ev, payload);
