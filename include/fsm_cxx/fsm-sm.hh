@@ -592,13 +592,13 @@ namespace fsm_cxx {
             std::string event_name{};
             S to{};
             Guard guard_fn{nullptr};
-            Action entry{nullptr};
-            Action exit{nullptr};
+            Action entry_fn{nullptr};
+            Action exit_fn{nullptr};
 
         public:
             transition_builder(machine_t &tt)
                 : owner(tt) {}
-            void build() { owner.transition(from, Transition{event_name, to, std::move(guard_fn), std::move(entry), std::move(exit)}); }
+            void build() { owner.transition(from, Transition{event_name, to, std::move(guard_fn), std::move(entry_fn), std::move(exit_fn)}); }
             template<typename Evt,
                      std::enable_if_t<std::is_base_of<Event, std::decay_t<Evt>>::value && !std::is_same<Evt, std::string>::value, bool> = true>
             transition_builder &transition(S from_, Evt const &, S to_) {
@@ -612,11 +612,11 @@ namespace fsm_cxx {
                 return (*this);
             }
             transition_builder &entry_action(Action &&fn) {
-                entry = fn;
+                entry_fn = fn;
                 return (*this);
             }
             transition_builder &exit_action(Action &&fn) {
-                exit = fn;
+                exit_fn = fn;
                 return (*this);
             }
         };
