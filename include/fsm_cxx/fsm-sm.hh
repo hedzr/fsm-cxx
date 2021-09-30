@@ -111,6 +111,11 @@ namespace fsm_cxx {
     };
 } // namespace fsm_cxx
 
+#define FSM_DEFINE_EVENT(n)                    \
+    struct n : public fsm_cxx::event_type<n> { \
+        virtual ~n() {}                        \
+    }
+
 // ----------------------------- context_t
 namespace fsm_cxx {
     template<typename State,

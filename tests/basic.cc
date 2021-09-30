@@ -41,15 +41,9 @@ namespace fsm_cxx { namespace test {
         virtual ~begin() {}
         int val{9};
     };
-    struct end : public fsm_cxx::event_type<end> {
-        virtual ~end() {}
-    };
-    struct open : public fsm_cxx::event_type<open> {
-        virtual ~open() {}
-    };
-    struct close : public fsm_cxx::event_type<close> {
-        virtual ~close() {}
-    };
+    FSM_DEFINE_EVENT(end);
+    FSM_DEFINE_EVENT(open);
+    FSM_DEFINE_EVENT(closed);
 #else
     struct event_base {};
     struct begin : public event_base {};
