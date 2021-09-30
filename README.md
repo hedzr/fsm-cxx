@@ -64,55 +64,61 @@ namespace fsm_cxx { namespace test {
 
     // event
 
-    struct event_base {};
-    struct begin : public event_base {};
-    struct end : public event_base {};
-    struct open : public event_base {};
-    struct close : public event_base {};
+    struct begin : public fsm_cxx::event_type<begin> {
+        virtual ~begin() {}
+        int val{9};
+    };
+    struct end : public fsm_cxx::event_type<end> {
+        virtual ~end() {}
+    };
+    struct open : public fsm_cxx::event_type<open> {
+        virtual ~open() {}
+    };
+    struct close : public fsm_cxx::event_type<close> {
+        virtual ~close() {}
+    };
 
     void test_state_meta() {
-        // using namespace hicc::dp::state::meta;
-        // using namespace hmeta;
-        machine_t<my_state, event_base> m;
+        machine_t<my_state> m;
         using M = decltype(m);
 
         // states
         m.initial(my_state::Initial)
                 .terminated(my_state::Terminated)
-                .error(my_state::Error, [](event_base const &, M::Context &, M::State const &, M::Payload const &) { std::cerr << "          .. <error> entering" << '\n'; })
+                .error(my_state::Error, [](M::Event const &, M::Context &, M::State const &, M::Payload const &) { std::cerr << "          .. <error> entering" << '\n'; })
                 .state(
                         my_state::Opened,
-                        [](event_base const &, M::Context &, M::State const &, M::Payload const &) { std::cout << "          .. <opened> entering" << '\n'; },
-                        [](event_base const &, M::Context &, M::State const &, M::Payload const &) { std::cout << "          .. <opened> exiting" << '\n'; })
+                        [](M::Event const &, M::Context &, M::State const &, M::Payload const &) { std::cout << "          .. <opened> entering" << '\n'; },
+                        [](M::Event const &, M::Context &, M::State const &, M::Payload const &) { std::cout << "          .. <opened> exiting" << '\n'; })
                 .state(
                         my_state::Closed,
-                        [](event_base const &, M::Context &, M::State const &, M::Payload const &) { std::cout << "          .. <closed> entering" << '\n'; },
-                        [](event_base const &, M::Context &, M::State const &, M::Payload const &) { std::cout << "          .. <closed> exiting" << '\n'; });
+                        [](M::Event const &, M::Context &, M::State const &, M::Payload const &) { std::cout << "          .. <closed> entering" << '\n'; },
+                        [](M::Event const &, M::Context &, M::State const &, M::Payload const &) { std::cout << "          .. <closed> exiting" << '\n'; });
 
         // transistions
-        m.transition(my_state::Initial, begin{}, my_state::Closed)
-                .transition(
-                        my_state::Closed, open{}, my_state::Opened,
-                        [](event_base const &, M::Context &, M::State const &, M::Payload const &) { std::cout << "          .. <closed -> opened> entering" << '\n'; },
-                        [](event_base const &, M::Context &, M::State const &, M::Payload const &) { std::cout << "          .. <closed -> opened> exiting" << '\n'; })
-                .transition(my_state::Opened, close{}, my_state::Closed)
+        m.transition(my_state::Initial, begin{}, my_state::Closed);
+        m.transition(
+                my_state::Closed, open{}, my_state::Opened,
+                [](M::Event const &, M::Context &, M::State const &, M::Payload const &) { std::cout << "          .. <closed -> opened> entering" << '\n'; },
+                [](M::Event const &, M::Context &, M::State const &, M::Payload const &) { std::cout << "          .. <closed -> opened> exiting" << '\n'; });
+        m.transition(my_state::Opened, close{}, my_state::Closed)
                 .transition(my_state::Closed, end{}, my_state::Terminated);
         m.transition(my_state::Opened,
                      M::Transition{end{}, my_state::Terminated,
-                                   [](event_base const &, M::Context &, M::State const &, M::Payload const &) { std::cout << "          .. <T><END>" << '\n'; },
+                                   [](M::Event const &, M::Context &, M::State const &, M::Payload const &) { std::cout << "          .. <T><END>" << '\n'; },
                                    nullptr});
 
         // guards
-        m.add_guard(my_state::Opened, [](event_base const &, M::Context &, M::State const &, M::Payload const &) -> bool { return true; });
-        m.add_guard(my_state::Opened, [](event_base const &, M::Context &, M::State const &, M::Payload const &p) -> bool { return p._ok; });
+        m.add_guard(my_state::Opened, [](M::Event const &, M::Context &, M::State const &, M::Payload const &) -> bool { return true; });
+        m.add_guard(my_state::Opened, [](M::Event const &, M::Context &, M::State const &, M::Payload const &p) -> bool { return p._ok; });
 
         m.on_error([](Reason reason, M::State const &, M::Context &, M::Event const &, M::Payload const &) {
             std::cout << "          Error: reason = " << reason << '\n';
         });
 
         // debug log
-        m.on_action_for_debug([&m](auto const &from, auto const &ev, auto const &to, auto const &actions, auto const &payload) {
-            std::printf("        [%s] -- %s --> [%s] (payload = %s)\n", m.state_to_sting(from).c_str(), ev.c_str(), m.state_to_sting(to).c_str(), to_string(payload).c_str());
+        m.on_transition([&m](auto const &from, fsm_cxx::event_t const &ev, auto const &to, auto const &actions, auto const &payload) {
+            std::printf("        [%s] -- %s --> [%s] (payload = %s)\n", m.state_to_sting(from).c_str(), ev.to_string().c_str(), m.state_to_sting(to).c_str(), to_string(payload).c_str());
             UNUSED(actions);
         });
 
