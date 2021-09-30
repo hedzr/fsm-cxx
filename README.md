@@ -82,37 +82,38 @@ namespace fsm_cxx { namespace test {
         machine_t<my_state> m;
         using M = decltype(m);
 
+        // @formatter:off
         // states
-        m.initial(my_state::Initial)
-                .terminated(my_state::Terminated)
-                .error(my_state::Error, [](M::Event const &, M::Context &, M::State const &, M::Payload const &) { std::cerr << "          .. <error> entering" << '\n'; })
-                .state(
-                        my_state::Opened,
-                        [](M::Event const &, M::Context &, M::State const &, M::Payload const &) { std::cout << "          .. <opened> entering" << '\n'; },
-                        [](M::Event const &, M::Context &, M::State const &, M::Payload const &) { std::cout << "          .. <opened> exiting" << '\n'; })
-                .state(
-                        my_state::Closed,
-                        [](M::Event const &, M::Context &, M::State const &, M::Payload const &) { std::cout << "          .. <closed> entering" << '\n'; },
-                        [](M::Event const &, M::Context &, M::State const &, M::Payload const &) { std::cout << "          .. <closed> exiting" << '\n'; });
+        m.state().set(my_state::Initial).as_initial().build();
+        m.state().set(my_state::Terminated).as_terminated().build();
+        m.state().set(my_state::Error).as_error()
+                .entry_action([](M::Event const &, M::Context &, M::State const &, M::Payload const &) { std::cerr << "          .. <error> entering" << '\n'; })
+                .build();
+        m.state().set(my_state::Opened)
+                .guard([](M::Event const &, M::Context &, M::State const &, M::Payload const &) -> bool { return true; })
+                .guard([](M::Event const &, M::Context &, M::State const &, M::Payload const &p) -> bool { return p._ok; })
+                .entry_action([](M::Event const &, M::Context &, M::State const &, M::Payload const &) { std::cout << "          .. <opened> entering" << '\n'; })
+                .exit_action([](M::Event const &, M::Context &, M::State const &, M::Payload const &) { std::cout << "          .. <opened> exiting" << '\n'; })
+                .build();
+        m.state().set(my_state::Closed)
+                .entry_action([](M::Event const &, M::Context &, M::State const &, M::Payload const &) { std::cout << "          .. <closed> entering" << '\n'; })
+                .exit_action([](M::Event const &, M::Context &, M::State const &, M::Payload const &) { std::cout << "          .. <closed> exiting" << '\n'; })
+                .build();
 
         // transistions
-        m.transition(my_state::Initial, begin{}, my_state::Closed);
-        m.builder()
-                .transition(my_state::Closed, open{}, my_state::Opened)
+        m.transition().set(my_state::Initial, begin{}, my_state::Closed).build();
+        m.transition()
+                .set(my_state::Closed, open{}, my_state::Opened)
                 .guard([](M::Event const &, M::Context &, M::State const &, M::Payload const &p) -> bool { return p._ok; })
                 .entry_action([](M::Event const &, M::Context &, M::State const &, M::Payload const &) { std::cout << "          .. <closed -> opened> entering" << '\n'; })
                 .exit_action([](M::Event const &, M::Context &, M::State const &, M::Payload const &) { std::cout << "          .. <closed -> opened> exiting" << '\n'; })
                 .build();
-        m.transition(my_state::Opened, close{}, my_state::Closed)
-                .transition(my_state::Closed, end{}, my_state::Terminated);
-        m.transition(my_state::Opened,
-                     M::Transition{end{}, my_state::Terminated, nullptr,
-                                   [](M::Event const &, M::Context &, M::State const &, M::Payload const &) { std::cout << "          .. <T><END>" << '\n'; },
-                                   nullptr});
-
-        // guards
-        m.add_guard(my_state::Opened, [](M::Event const &, M::Context &, M::State const &, M::Payload const &) -> bool { return true; });
-        m.add_guard(my_state::Opened, [](M::Event const &, M::Context &, M::State const &, M::Payload const &p) -> bool { return p._ok; });
+        m.transition().set(my_state::Opened, close{}, my_state::Closed).build()
+                .transition().set(my_state::Closed, end{}, my_state::Terminated).build();
+        m.transition().set(my_state::Opened, end{}, my_state::Terminated)
+                .entry_action([](M::Event const &, M::Context &, M::State const &, M::Payload const &) { std::cout << "          .. <T><END>" << '\n'; })
+                .build();
+        // @formatter:on
 
         m.on_error([](Reason reason, M::State const &, M::Context &, M::Event const &, M::Payload const &) {
             std::cout << "          Error: reason = " << reason << '\n';

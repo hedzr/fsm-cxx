@@ -527,63 +527,11 @@ namespace fsm_cxx {
         using Guard = typename Transition::Guard;
 
     public:
-        machine_t &initial(S st, ActionT &&entry_action = nullptr, ActionT &&exit_action = nullptr) {
-            _initial = st;
-            _ctx.current(st);
-            return state(st, std::move(entry_action), std::move(exit_action));
-        }
-        machine_t &terminated(S st, ActionT &&entry_action = nullptr, ActionT &&exit_action = nullptr) {
-            _terminated = st;
-            return state(st, std::move(entry_action), std::move(exit_action));
-        }
-        machine_t &error(S st, ActionT &&entry_action = nullptr, ActionT &&exit_action = nullptr) {
-            _error = st;
-            return state(st, std::move(entry_action), std::move(exit_action));
-        }
-
-        machine_t &state(S st, ActionT &&entry_action = nullptr, ActionT &&exit_action = nullptr) {
-            Actions actions{std::move(entry_action), std::move(exit_action)};
-            if (actions.valid())
-                _state_actions.emplace(StateT{st}, std::move(actions));
-            return (*this);
-        }
-
-        template<typename _Callable, typename... _Args>
-        machine_t &add_guard(State const &st, _Callable &&f, _Args &&...args) {
-            _ctx.add_guard(st, std::forward<_Callable>(f), std::forward<_Args>(args)...);
-            return (*this);
-        }
-
         machine_t &reset() {
             _ctx.reset(_initial);
             return (*this);
         }
-
-        template<typename Evt>
-        machine_t &transition(S from, Evt const &, S to, Guard &&p = nullptr, ActionT &&entry_action = nullptr, ActionT &&exit_action = nullptr) {
-            auto event_name = std::string{fsm_cxx::debug::type_name<Evt>()};
-            Transition t{event_name, to, std::move(p), std::move(entry_action), std::move(exit_action)};
-            return transition(from, std::move(t));
-        }
-        machine_t &transition(S from, Transition &&trans) {
-            State f{from};
-            return transition(f, std::forward<Transition>(trans));
-        }
-        // machine_t &transition(S from, Transition const &trans) {
-        //     if (auto it = _trans_tbl.find(State{from}); it == _trans_tbl.end())
-        //         _trans_tbl.insert({State{from}, trans});
-        //     else
-        //         it->second.add(trans);
-        //     return (*this);
-        // }
-        machine_t &transition(State const &from, Transition &&trans) {
-            if (auto it = _trans_tbl.find(from); it == _trans_tbl.end())
-                _trans_tbl.emplace(from, std::move(trans));
-            else
-                it->second.add(std::forward<Transition>(trans));
-            return (*this);
-        }
-
+        
         machine_t &on_transition(OnAction &&fn) {
             _on_action = fn;
             return (*this);
@@ -592,6 +540,112 @@ namespace fsm_cxx {
             _on_error = fn;
             return (*this);
         }
+
+    protected:
+        machine_t &initial_set(S st, ActionT &&entry_action = nullptr, ActionT &&exit_action = nullptr) {
+            _initial = st;
+            _ctx.current(st);
+            return state_set(st, std::move(entry_action), std::move(exit_action));
+        }
+        machine_t &terminated_set(S st, ActionT &&entry_action = nullptr, ActionT &&exit_action = nullptr) {
+            _terminated = st;
+            return state_set(st, std::move(entry_action), std::move(exit_action));
+        }
+        machine_t &error_set(S st, ActionT &&entry_action = nullptr, ActionT &&exit_action = nullptr) {
+            _error = st;
+            return state_set(st, std::move(entry_action), std::move(exit_action));
+        }
+
+        machine_t &state_set(S st, ActionT &&entry_action = nullptr, ActionT &&exit_action = nullptr) {
+            Actions actions{std::move(entry_action), std::move(exit_action)};
+            if (actions.valid())
+                _state_actions.emplace(StateT{st}, std::move(actions));
+            return (*this);
+        }
+
+        template<typename _Callable, typename... _Args>
+        machine_t &guard_add(State const &st, _Callable &&f, _Args &&...args) {
+            _ctx.add_guard(st, std::forward<_Callable>(f), std::forward<_Args>(args)...);
+            return (*this);
+        }
+
+        template<typename Evt>
+        machine_t &transition_set(S from, Evt const &, S to, Guard &&p = nullptr, ActionT &&entry_action = nullptr, ActionT &&exit_action = nullptr) {
+            auto event_name = std::string{fsm_cxx::debug::type_name<Evt>()};
+            Transition t{event_name, to, std::move(p), std::move(entry_action), std::move(exit_action)};
+            return transition_set(from, std::move(t));
+        }
+        machine_t &transition_set(S from, Transition &&trans) {
+            State f{from};
+            return transition_set(f, std::forward<Transition>(trans));
+        }
+        machine_t &transition_set(State const &from, Transition &&trans) {
+            if (auto it = _trans_tbl.find(from); it == _trans_tbl.end())
+                _trans_tbl.emplace(from, std::move(trans));
+            else
+                it->second.add(std::forward<Transition>(trans));
+            return (*this);
+        }
+
+    public:
+        class state_builder {
+            machine_t &owner;
+            S st{};
+            std::vector<Guard> guard_fn{};
+            Action entry_fn{nullptr};
+            Action exit_fn{nullptr};
+            bool initial_, terminated_, error_;
+
+        public:
+            state_builder(machine_t &tt)
+                : owner(tt) {}
+            machine_t &build() {
+                if (initial_) {
+                    return owner.initial_set(st, std::move(entry_fn), std::move(exit_fn));
+                } else if (terminated_) {
+                    return owner.terminated_set(st, std::move(entry_fn), std::move(exit_fn));
+                } else if (error_) {
+                    return owner.error_set(st, std::move(entry_fn), std::move(exit_fn));
+                }
+                for (auto &fn : guard_fn)
+                    owner.guard_add(st, fn);
+                return owner.state_set(st, std::move(entry_fn), std::move(exit_fn));
+            }
+            state_builder &set(S s) {
+                st = s;
+                return (*this);
+            }
+            state_builder &as_initial() {
+                initial_ = true;
+                error_ = terminated_ = false;
+                return (*this);
+            }
+            state_builder &as_terminated() {
+                terminated_ = true;
+                error_ = initial_ = false;
+                return (*this);
+            }
+            state_builder &as_error() {
+                error_ = true;
+                initial_ = terminated_ = false;
+                return (*this);
+            }
+            state_builder &guard(Guard &&fn) {
+                guard_fn.emplace_back(fn);
+                return (*this);
+            }
+            template<typename _Callable, typename... _Args>
+            state_builder &entry_action(_Callable &&f, _Args &&...args) {
+                entry_fn.update(f, args...);
+                return (*this);
+            }
+            template<typename _Callable, typename... _Args>
+            state_builder &exit_action(_Callable &&f, _Args &&...args) {
+                exit_fn.update(f, args...);
+                return (*this);
+            }
+        };
+        state_builder state() { return state_builder(*this); }
 
     public:
         class transition_builder {
@@ -606,10 +660,10 @@ namespace fsm_cxx {
         public:
             transition_builder(machine_t &tt)
                 : owner(tt) {}
-            void build() { owner.transition(from, Transition{event_name, to, std::move(guard_fn), std::move(entry_fn), std::move(exit_fn)}); }
+            machine_t &build() { return owner.transition_set(from, Transition{event_name, to, std::move(guard_fn), std::move(entry_fn), std::move(exit_fn)}); }
             template<typename Evt,
                      std::enable_if_t<std::is_base_of<Event, std::decay_t<Evt>>::value && !std::is_same<Evt, std::string>::value, bool> = true>
-            transition_builder &transition(S from_, Evt const &, S to_) {
+            transition_builder &set(S from_, Evt const &, S to_) {
                 from = from_;
                 event_name = std::string{fsm_cxx::debug::type_name<Evt>()};
                 to = to_;
@@ -630,7 +684,7 @@ namespace fsm_cxx {
                 return (*this);
             }
         };
-        transition_builder builder() { return transition_builder(*this); }
+        transition_builder transition() { return transition_builder(*this); }
 
     public:
         template<typename Evt,
