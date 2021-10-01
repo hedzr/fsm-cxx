@@ -65,6 +65,13 @@ namespace fsm_cxx {
 namespace fsm_cxx {
     // struct dummy_event {};
 
+    namespace detail{
+        inline std::string shorten(std::string const &s) {
+            auto pos = s.rfind("::");
+            return pos == std::string::npos ? s : s.substr(pos + 2);
+        }
+    }
+    
     struct event_t {
         virtual ~event_t() {}
         virtual std::string to_string() const { return ""; }
@@ -72,11 +79,7 @@ namespace fsm_cxx {
     template<typename T>
     struct event_type : public event_t {
         virtual ~event_type() {}
-        std::string to_string() const { return shorten(std::string(debug::type_name<T>())); }
-        static std::string shorten(std::string const &s) {
-            auto pos = s.rfind("::");
-            return pos == std::string::npos ? s : s.substr(pos + 2);
-        }
+        std::string to_string() const { return detail::shorten(std::string(debug::type_name<T>())); }
     };
 
     // template<typename EventT>
@@ -109,6 +112,13 @@ namespace fsm_cxx {
         friend std::ostream &operator<<(std::ostream &os, payload_t const &o) { return os << o.to_string(); }
         bool _ok;
     };
+    
+    template<typename T>
+    struct payload_type : public payload_t {
+        virtual ~payload_type() {}
+        std::string to_string() const { return detail::shorten(std::string(debug::type_name<T>())); }
+    };
+    
 } // namespace fsm_cxx
 
 #define FSM_DEFINE_EVENT(n)                    \
@@ -746,15 +756,10 @@ namespace fsm_cxx {
         }
 
     public:
-        static std::string state_to_sting(StateT const &state) { return shorten(to_string(state)); }
-        static std::string state_to_sting(S const &state) { return shorten(to_string(state)); }
+        static std::string state_to_sting(StateT const &state) { return detail::shorten(to_string(state)); }
+        static std::string state_to_sting(S const &state) { return detail::shorten(to_string(state)); }
 
     protected:
-        static std::string shorten(std::string const &s) {
-            auto pos = s.rfind("::");
-            return pos == std::string::npos ? s : s.substr(pos + 2);
-        }
-
         friend std::basic_istream<CharT> &operator>>(std::basic_istream<CharT> &is, machine_t &o) {
             CharT c;
             is >> c; // TODO process the input stream (is >> c) and convert it to event and trigger
