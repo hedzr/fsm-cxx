@@ -65,13 +65,13 @@ namespace fsm_cxx {
 namespace fsm_cxx {
     // struct dummy_event {};
 
-    namespace detail{
+    namespace detail {
         inline std::string shorten(std::string const &s) {
             auto pos = s.rfind("::");
             return pos == std::string::npos ? s : s.substr(pos + 2);
         }
-    }
-    
+    } // namespace detail
+
     struct event_t {
         virtual ~event_t() {}
         virtual std::string to_string() const { return ""; }
@@ -112,13 +112,13 @@ namespace fsm_cxx {
         friend std::ostream &operator<<(std::ostream &os, payload_t const &o) { return os << o.to_string(); }
         bool _ok;
     };
-    
+
     template<typename T>
     struct payload_type : public payload_t {
         virtual ~payload_type() {}
         std::string to_string() const { return detail::shorten(std::string(debug::type_name<T>())); }
     };
-    
+
 } // namespace fsm_cxx
 
 #define FSM_DEFINE_EVENT(n)                    \
@@ -541,7 +541,7 @@ namespace fsm_cxx {
             _ctx.reset(_initial);
             return (*this);
         }
-        
+
         machine_t &on_transition(OnAction &&fn) {
             _on_action = fn;
             return (*this);
@@ -765,6 +765,16 @@ namespace fsm_cxx {
             is >> c; // TODO process the input stream (is >> c) and convert it to event and trigger
             o.step_by(c);
             return is;
+        }
+
+    public:
+        template<typename Evt,
+                 std::enable_if_t<std::is_base_of<Event, std::decay_t<Evt>>::value &&
+                                          !std::is_same<Evt, std::string>::value,
+                                  bool> = true>
+        machine_t &operator<<(Evt const &ev) {
+            step_by(ev);
+            return (*this);
         }
 
     private:

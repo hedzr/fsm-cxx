@@ -158,11 +158,7 @@ namespace fsm_cxx { namespace test {
 
         // processing
 
-        m.step_by(begin{});
-        m.step_by(open{});
-        m.step_by(close{});
-        m.step_by(open{});
-        m.step_by(end{});
+        m << begin{} << open{} << close{} << open{} << end{};
 
         std::printf("---- END OF test_state_meta_2()\n\n\n");
     }
