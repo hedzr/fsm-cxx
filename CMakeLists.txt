@@ -33,7 +33,7 @@ option(FSM_CXX_ENABLE_PRECONDITION_CHECKS "PL-OK" ON)
 
 #### PROJECTS ##################################################
 
-project(FSM_CXX)
+project(fsm_cxx)
 
 set(detail_header_files
         ${CMAKE_CURRENT_SOURCE_DIR}/include/fsm_cxx/detail/fsm-if.hh
