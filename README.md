@@ -46,7 +46,7 @@ No external dependencies except STL
 
 ## Usages
 
-A simple state machine is:
+Here is a simple state machine:
 
 ```cpp
 #include <fsm_cxx.hh>
@@ -79,7 +79,7 @@ namespace fsm_cxx { namespace test {
     };
 
     void test_state_meta() {
-        machine_t<my_state> m;
+        fsm_cxx::machine_t<my_state> m;
         using M = decltype(m);
 
         // @formatter:off
@@ -115,7 +115,7 @@ namespace fsm_cxx { namespace test {
                 .build();
         // @formatter:on
 
-        m.on_error([](Reason reason, M::State const &, M::Context &, M::Event const &, M::Payload const &) {
+        m.on_error([](fsm_cxx::Reason reason, M::State const &, M::Context &, M::Event const &, M::Payload const &) {
             std::cout << "          Error: reason = " << reason << '\n';
         });
 
@@ -128,7 +128,7 @@ namespace fsm_cxx { namespace test {
         // processing
 
         m.step_by(begin{});
-        if (!m.step_by(open{}, payload_t{false}))
+        if (!m.step_by(open{}, fsm_cxx::payload_t{false}))
             std::cout << "          E. cannot step to next with a false payload\n";
         m.step_by(open{});
         m.step_by(close{});
@@ -145,7 +145,7 @@ int main() {
 }
 ```
 
-## For Developer
+## How to Contribute
 
 
 
