@@ -145,11 +145,11 @@ int main() {
 }
 ```
 
-## How to Contribute
 
 
+## Build Options
 
-### Build
+### Build with CMake
 
 > 1. gcc 10+: passed
 > 2. clang 12+: passed
