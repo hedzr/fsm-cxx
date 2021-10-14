@@ -76,7 +76,7 @@ namespace fsm_cxx { namespace test {
                 .exit_action([](M::Event const &, M::Context &, M::State const &, M::Payload const &) { std::cout << "          .. <closed> exiting" << '\n'; })
                 .build();
 
-        // transistions
+        // transitions
         m.transition().set(my_state::Initial, begin{}, my_state::Closed).build();
         m.transition()
                 .set(my_state::Closed, open{}, my_state::Opened)
