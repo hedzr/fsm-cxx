@@ -11,6 +11,9 @@
 #include <string>
 
 
+#if !defined(DEBUG) && defined(USE_DEBUG) && USE_DEBUG
+#define DEBUG  1
+#endif
 #if !defined(_DEBUG) && defined(DEBUG)
 #define _DEBUG DEBUG
 #endif
@@ -148,5 +151,15 @@ namespace std {
 
 #endif
 
+
+#ifndef __FUNCTION_NAME__
+#ifdef __clang__
+#define __FUNCTION_NAME__ __PRETTY_FUNCTION__
+#elif defined(__GNUC__)
+#define __FUNCTION_NAME__ __PRETTY_FUNCTION__
+#elif defined(_MSC_VER)
+#define __FUNCTION_NAME__ __FUNCSIG__
+#endif
+#endif
 
 #endif // _PRIVATE_VAR_FOLDERS_0K_1RQY3K4X7_5B_73SW5PY2BW00000GN_T_CLION_CLANG_TIDY_FSM_DEF_HH
