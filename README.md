@@ -64,6 +64,10 @@ namespace fsm_cxx { namespace test {
 
     // event
 
+    // Or:
+    // FSM_DEFINE_EVENT_BEGIN(begin)
+    //     int val{9}
+    // FSM_DEFINE_EVENT_END()
     struct begin : public fsm_cxx::event_type<begin> {
         virtual ~begin() {}
         int val{9};
@@ -74,6 +78,8 @@ namespace fsm_cxx { namespace test {
     struct open : public fsm_cxx::event_type<open> {
         virtual ~open() {}
     };
+    // Or:
+    // FSM_DEFINE_EVENT(close)
     struct close : public fsm_cxx::event_type<close> {
         virtual ~close() {}
     };
