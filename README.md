@@ -6,7 +6,6 @@
 
 `fsm-cxx` is a finite state machina library for C++17, header-only, light-weight but full-featured, and designed for easy binding and friendly programmatic interface.
 
-**WIP**
 
 ## Features
 
