@@ -121,10 +121,13 @@ namespace fsm_cxx {
 
 } // namespace fsm_cxx
 
-#define FSM_DEFINE_EVENT(n)                    \
+#define FSM_DEFINE_EVENT_BEGIN(n)              \
     struct n : public fsm_cxx::event_type<n> { \
-        virtual ~n() {}                        \
-    }
+        virtual ~n() {}
+#define FSM_DEFINE_EVENT_END() }
+#define FSM_DEFINE_EVENT(n)   \
+    FSM_DEFINE_EVENT_BEGIN(n) \
+    FSM_DEFINE_EVENT_END()
 
 // ----------------------------- context_t
 namespace fsm_cxx {
