@@ -1,9 +1,15 @@
+// fsm_cxx Library
+// Copyright © 2021 Hedzr Yeh.
+//
+// This file is released under the terms of the MIT license.
+// Read /LICENSE for more information.
+
 //
 // Created by Hedzr Yeh on 2021/9/26.
 //
 
-#ifndef FSM_CXX_HH
-#define FSM_CXX_HH
+#ifndef __FSM_CXX_HH
+#define __FSM_CXX_HH
 
 #pragma once
 
@@ -22,4 +28,4 @@
 #include "fsm_cxx/detail/fsm-if.hh"
 
 
-#endif // FSM_CXX_HH
+#endif // __FSM_CXX_HH

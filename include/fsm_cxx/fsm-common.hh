@@ -1,9 +1,15 @@
+// fsm_cxx Library
+// Copyright © 2021 Hedzr Yeh.
+//
+// This file is released under the terms of the MIT license.
+// Read /LICENSE for more information.
+
 //
 // Created by Hedzr Yeh on 2021/9/26.
 //
 
-#ifndef _PRIVATE_VAR_FOLDERS_0K_1RQY3K4X7_5B_73SW5PY2BW00000GN_T_CLION_CLANG_TIDY_FSM_COMMON_HH
-#define _PRIVATE_VAR_FOLDERS_0K_1RQY3K4X7_5B_73SW5PY2BW00000GN_T_CLION_CLANG_TIDY_FSM_COMMON_HH
+#ifndef __FSM_CXX_FSM_COMMON_HH
+#define __FSM_CXX_FSM_COMMON_HH
 
 #include <functional>
 #include <memory>
@@ -110,4 +116,4 @@ namespace fsm_cxx {
 
 } // namespace fsm_cxx
 
-#endif // _PRIVATE_VAR_FOLDERS_0K_1RQY3K4X7_5B_73SW5PY2BW00000GN_T_CLION_CLANG_TIDY_FSM_COMMON_HH
+#endif // __FSM_CXX_FSM_COMMON_HH
