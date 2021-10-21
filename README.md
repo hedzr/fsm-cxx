@@ -14,6 +14,7 @@
 - Transition actions
 - Transition conditions (input action)
 - Event payload (classes)
+- Thread Safe (`safe_machine_t<>`)
 - [ ] Inheritance of states and action functions
 - [ ] Documentations (NOT YET)
 - [ ] Examples (NOT YET)
