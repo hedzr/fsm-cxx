@@ -1,23 +1,22 @@
 # fsm-cxx
 
-![CMake Build Matrix](https://github.com/hedzr/fsm-cxx/workflows/CMake%20Build%20Matrix/badge.svg) <!-- 
-![CMake Build Matrix](https://github.com/hedzr/fsm-cxx/workflows/CMake%20Build%20Matrix/badge.svg?event=release) 
+![CMake Build Matrix](https://github.com/hedzr/fsm-cxx/workflows/CMake%20Build%20Matrix/badge.svg) <!--
+![CMake Build Matrix](https://github.com/hedzr/fsm-cxx/workflows/CMake%20Build%20Matrix/badge.svg?event=release)
 --> [![GitHub tag (latest SemVer)](https://img.shields.io/github/tag/hedzr/fsm-cxx.svg?label=release)](https://github.com/hedzr/fsm-cxx/releases)
 
 `fsm-cxx` is a finite state machina library for C++17, header-only, light-weight but full-featured, and designed for easy binding and friendly programmatic interface.
 
-
 ## Features
 
-- Entry/exit actions
-- Event actions, guards
-- Transition actions
-- Transition conditions (input action)
-- Event payload (classes)
-- Thread Safe (`safe_machine_t<>`)
-- [ ] Inheritance of states and action functions
-- [ ] Documentations (NOT YET)
-- [ ] Examples (NOT YET)
+-   Entry/exit actions
+-   Event actions, guards
+-   Transition actions
+-   Transition conditions (input action)
+-   Event payload (classes)
+-   Thread Safe (`safe_machine_t<>`)
+-   [ ] Inheritance of states and action functions
+-   [ ] Documentations (NOT YET)
+-   [ ] Examples (NOT YET)
 
 ---
 
@@ -151,8 +150,6 @@ int main() {
 }
 ```
 
-
-
 ## Build Options
 
 ### Build with CMake
@@ -180,22 +177,16 @@ cmake --install build/
 #   sudo cp -R ./install/lib/cmake/fsm_cxx /usr/local/lib/cmake/
 ```
 
-
 ### Other CMake Options
 
 1. `FSM_CXX_BUILD_TESTS_EXAMPLES`=OFF
 2. `FSM_CXX_BUILD_DOCS`=OFF
 3. ...
 
-
 ## Thanks to JODL
 
 Thanks to [JetBrains](https://www.jetbrains.com/?from=fsm-cxx) for donating product licenses to help develop **fsm-cxx** [![jetbrains](https://gist.githubusercontent.com/hedzr/447849cb44138885e75fe46f1e35b4a0/raw/bedfe6923510405ade4c034c5c5085487532dee4/jetbrains-variant-4.svg)](https://www.jetbrains.com/?from=hedzr/fsm-cxx)
 
-
 ## LICENSE
 
-MIT
-
-
-## 🔚
+Apache 2.0
