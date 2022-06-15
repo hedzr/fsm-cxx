@@ -33,7 +33,10 @@ option(FSM_CXX_ENABLE_PRECONDITION_CHECKS "PL-OK" ON)
 
 #### PROJECTS ##################################################
 
-project(fsm_cxx)
+project(fsm_cxx
+        VERSION ${VERSION}
+        DESCRIPTION "fsm-cxx is a finite state machine within c++17."
+        LANGUAGES CXX)
 
 set(detail_header_files
         ${CMAKE_CURRENT_SOURCE_DIR}/include/fsm_cxx/detail/fsm-if.hh
