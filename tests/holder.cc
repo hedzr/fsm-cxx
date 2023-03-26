@@ -31,7 +31,8 @@ namespace a1 {
   public:
     rect() = default;
     ~rect() override = default;
-    rect(double t, double l, double b, double r) : _t(t), _l(l), _b(b), _r(r) {}
+    template<class T>
+    rect(T const &t, T const &l, T const &b, T const &r) : _t(t), _l(l), _b(b), _r(r) {}
     rect(rect &&o) : _t(std::move(o._t)), _l(std::move(o._l)), _b(std::move(o._b)), _r(std::move(o._r)) {}
 #ifndef __COPY
 #define __COPY(m) this->m = std::move(o.m)
@@ -50,15 +51,25 @@ namespace a1 {
   private:
     double _t, _l, _b, _r;
   };
+  struct generic_elem : public std::variant<std::monostate, rect> {
+    generic_elem() = default;
+    ~generic_elem() = default;
+    
+    using base_type = std::variant<std::monostate, rect>;
+    using base_type::base_type;
+
+    template<typename... Args>
+    generic_elem(Args &&...args) : base_type(std::forward<Args>(args)...) {}
+  };
 
   struct canvas {
-    using elemsp = std::shared_ptr<elem>;
-    using elements = std::vector<elemsp>;
+    using elemsp = std::shared_ptr<generic_elem>;
+    using elements = std::vector<generic_elem>;
     elements _coll;
 
     template<typename... Args>
-    elemsp create(Args &&...args) {
-      auto sp = _coll.emplace_back(std::forward<Args>(args)...);
+    auto &create(Args &&...args) {
+      auto &sp = _coll.emplace_back(std::forward<Args>(args)...);
       return sp;
     }
   };
@@ -67,7 +78,14 @@ namespace a1 {
 
 int main() {
   using namespace a1;
+
+  generic_elem el{std::in_place_type<rect>, 1, 2, 3, 4};
+  std::cout << std::get<rect>(el).width() << '\n';
+
+  generic_elem el2{std::in_place_index<1>, 1., 2., 3., 4.};
+  std::cout << std::get<rect>(el2).width() << '\n';
+
   canvas c;
-  auto rc = c.create(1, 2, 3, 4);
-  std::cout << rc->width() << '\n';
+  auto &rc = c.create(std::in_place_index<1>, 1, 2, 3, 4);
+  std::cout << std::get<a1::rect>(rc).width() << '\n';
 }
