@@ -16,10 +16,17 @@
 Checks: >-
   -*,
   clang-diagnostic-*,
+  -clang-diagnostic-error,
   llvm-*,
+  -llvm-header-guard,
   misc-*,
   -misc-unused-parameters,
   -misc-non-private-member-variables-in-classes,
+  modernize*,
+  -modernize-use-trailing-return-type,
+  -modernize-use-equals-default,
+  -modernize-avoid-c-arrays,
+  readability,
   -google-readability-namespace-comments,
   -readability-identifier-naming
   -readability-redundant-access-specifiers
@@ -31,16 +38,88 @@ Checks: >-
 # check if the users would override this file, e.g. via a command-line arg.
 CheckOptions:
   - key:             readability-identifier-naming.ClassCase
-    value:           CamelCase
+    value:           lower_case
   - key:             readability-identifier-naming.EnumCase
-    value:           CamelCase
+    value:           UPPER_CASE
   - key:             readability-identifier-naming.FunctionCase
-    value:           camelBack
+    value:           lower_case
   - key:             readability-identifier-naming.MemberCase
-    value:           CamelCase
+    value:           lower_case
   - key:             readability-identifier-naming.ParameterCase
-    value:           CamelCase
+    value:           lower_case
   - key:             readability-identifier-naming.UnionCase
-    value:           CamelCase
+    value:           lower_case
   - key:             readability-identifier-naming.VariableCase
-    value:           CamelCase
+    value:           lower_case
+
+# REF
+#Checks: >-
+#  *,
+#    -llvm-*,
+#    -llvmlibc-*,
+#    -altera-*,
+#    -android-*,
+#    -boost-*,
+#    -darwin-*,
+#    -fuchsia-*,
+#    -linuxkernel-*,
+#    -objc-*,
+#    -portability-*,
+#    -zircon-*,
+#    -clang-analyzer-osx*,
+#    -clang-analyzer-optin.cplusplus.UninitializedObject,
+#    -clang-analyzer-optin.cplusplus.VirtualCall,
+#    -clang-analyzer-core.NullDereference,
+#    -clang-analyzer-cplusplus.NewDelete,
+#    -clang-analyzer-cplusplus.PlacementNew,
+#    -clang-analyzer-cplusplus.NewDeleteLeaks,
+#    -clang-analyzer-cplusplus.Move,
+#    -clang-diagnostic-unused-parameter,
+#    -cppcoreguidelines-*,
+#    cppcoreguidelines-explicit-virtual-functions,
+#    cppcoreguidelines-special-member-functions,
+#    -cert-err58-cpp,
+#    -cert-env33-c,
+#    -cert-dcl37-c,
+#    -cert-dcl51-cpp,
+#    -google-runtime-int,
+#    -google-readability-casting,
+#    -google-readability-function-size,
+#    -google-readability-todo,
+#    -google-readability-braces-around-statements,
+#    -google-build-using-namespace,
+#    -readability-magic-numbers,
+#    -readability-implicit-bool-conversion,
+#    -readability-function-cognitive-complexity,
+#    -readability-isolate-declaration,
+#    -readability-convert-member-functions-to-static,
+#    -readability-container-size-empty,
+#    -readability-function-size,
+#    -readability-qualified-auto,
+#    -readability-make-member-function-const,
+#    -readability-named-parameter,
+#    -modernize-use-trailing-return-type,
+#    -modernize-avoid-c-arrays,
+#    -modernize-use-nullptr,
+#    -modernize-replace-disallow-copy-and-assign-macro,
+#    -modernize-use-bool-literals,
+#    -modernize-use-equals-default,
+#    -modernize-use-default-member-init,
+#    -modernize-use-auto,
+#    -modernize-loop-convert,
+#    -modernize-deprecated-headers,
+#    -modernize-raw-string-literal,
+#    -misc-no-recursion,
+#    -misc-unused-parameters,
+#    -misc-redundant-expression,
+#    -misc-non-private-member-variables-in-classes,
+#    -hicpp-*,
+#    hicpp-exception-baseclass,
+#    -performance-no-int-to-ptr,
+#    -bugprone-easily-swappable-parameters,
+#    -bugprone-implicit-widening-of-multiplication-result,
+#    -bugprone-integer-division,
+#    -bugprone-exception-escape,
+#    -bugprone-reserved-identifier,
+#    -bugprone-branch-clone,
+#    -bugprone-narrowing-conversions,
