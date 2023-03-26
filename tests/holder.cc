@@ -1,6 +1,8 @@
 #include <functional>
 #include <iostream>
 #include <memory>
+#include <utility>
+#include <variant>
 #include <vector>
 
 #include "fsm_cxx/fsm-common.hh"
@@ -54,7 +56,7 @@ namespace a1 {
   struct generic_elem : public std::variant<std::monostate, rect> {
     generic_elem() = default;
     ~generic_elem() = default;
-    
+
     using base_type = std::variant<std::monostate, rect>;
     using base_type::base_type;
 
