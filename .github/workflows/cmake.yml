@@ -3,10 +3,10 @@ name: CMake Build Matrix
 on: [ push, pull_request ]
 
 env:
-  CMAKE_VERSION: 3.18.3
+  CMAKE_VERSION: 3.26.0
   NINJA_VERSION: 1.10.1
-  BUILD_TYPE: Release
   CCACHE_VERSION: 3.7.7
+  BUILD_TYPE: Release
   CI_RUNNING: 1
 
 jobs:
@@ -17,13 +17,13 @@ jobs:
       fail-fast: true
       matrix:
         config:
-#          - {
-#            name: "Windows Latest MSVC", artifact: "Windows-MSVC.7z",
-#            os: windows-latest,
-#            cc: "cl", cxx: "cl",
-#            environment_script: "C:/Program Files (x86)/Microsoft Visual Studio/2019/Enterprise/VC/Auxiliary/Build/vcvars64.bat",
-#            tcf: "-D CMAKE_TOOLCHAIN_FILE=c:/vcpkg/scripts/buildsystems/vcpkg.cmake"
-#          }
+          #          - {
+          #            name: "Windows Latest MSVC", artifact: "Windows-MSVC.7z",
+          #            os: windows-latest,
+          #            cc: "cl", cxx: "cl",
+          #            environment_script: "C:/Program Files (x86)/Microsoft Visual Studio/2019/Enterprise/VC/Auxiliary/Build/vcvars64.bat",
+          #            tcf: "-D CMAKE_TOOLCHAIN_FILE=c:/vcpkg/scripts/buildsystems/vcpkg.cmake"
+          #          }
           #- {
           #  name: "Windows Latest MinGW", artifact: "Windows-MinGW.7z",
           #  os: windows-latest,
@@ -32,91 +32,123 @@ jobs:
           - {
             name: "Ubuntu Latest GCC", artifact: "Linux.7z",
             os: ubuntu-latest,
-            cc: "gcc-10", cxx: "g++-10"
+            cc: "gcc", cxx: "g++"
           }
-#          - {
-#            name: "macOS Latest Clang", artifact: "macOS.7z",
-#            os: macos-latest,
-#            cc: "clang", cxx: "clang++"
-#          }
+    #          - {
+    #            name: "macOS Latest Clang", artifact: "macOS.7z",
+    #            os: macos-latest,
+    #            cc: "clang", cxx: "clang++"
+    #          }
 
     steps:
       - uses: actions/checkout@v1
 
-      - name: Install gcc 10+ for Ubuntu-18
+      - name: Install gcc 10+ for Ubuntu-18+
         #if: matrix.os == 'ubuntu-latest'
         if: runner.os == 'Linux'
         run: |
           # if [[ "$OSTYPE" == "linux-gnu"* ]]; then
-          if [[ "$(gcc --version|head -1)" != *10.* ]]; then
-            sudo add-apt-repository ppa:ubuntu-toolchain-r/test
-            sudo apt update
-            sudo apt install -y gcc-10 g++-10
+          if [[ "$(gcc --version|head -1)" == *12.* ]]; then
+            echo "gcc-12 found: $(gcc --version)"
+            sudo update-alternatives --list gcc || true
+            ls -la $(which gcc)
+          elif [[ "$(gcc --version|head -1)" == *11.* ]]; then
+            echo "gcc-11 found: $(gcc --version)"
+            sudo update-alternatives --list gcc || true
+            ls -la $(which gcc)
+          elif [[ "$(gcc --version|head -1)" != *10.* ]]; then
+            sudo add-apt-repository --yes -u ppa:ubuntu-toolchain-r/test &&
+              sudo apt-get install -y build-essential gcc-10 g++-10 gcc-11-locales g++-11-multilib &&
+              [ -x /usr/bin/gcc-12 ] && sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-10 50 --slave /usr/bin/g++ g++ /usr/bin/g++-10 &&
+              sudo update-alternatives --list gcc && sudo update-alternatives --list g++ &&
+              echo 1 | sudo update-alternatives --config gcc
           fi
           # fi
 
-#      - name: Install yaml-cpp
-#        run:   |
-#          if [ "$RUNNER_OS" == "Linux" ]; then
-#               sudo apt install -y libyaml-cpp-dev
-#          elif [ "$RUNNER_OS" == "Windows" ]; then
-#               # choco install yaml-cpp
-#               vcpkg install yaml-cpp:x64-windows
-#          elif [ "$RUNNER_OS" == "Darwin" ]; then
-#               brew install yaml-cpp
-#          elif [ "$RUNNER_OS" == "macOS" ]; then
-#               brew install yaml-cpp
-#          else
-#               echo "$RUNNER_OS not supported"
-#               exit 1
-#          fi
-#        shell: bash
+      - name: Install deps
+        #if: matrix.os == 'ubuntu-latest'
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ca-certificates locales \
+            software-properties-common gpg-agent curl wget lsof \
+            python3 python3-pip \
+            clang-tidy \
+            ninja-build cmake ccache make bison flex xsltproc libfl-dev doxygen graphviz \
+            libtool pkg-config
+          # sudo apt-get install -y ca-certificates locales \
+          #  software-properties-common gpg-agent curl wget lsof \
+          #  python3 python3-pip \
+          #  git ccache clang-tidy build-essential \
+          #  gdb gdbserver \
+          #  ninja-build \
+          #  make cmake automake bison flex xsltproc libfl-dev doxygen graphviz \
+          #  libtool pkg-config
 
-      - name: Download Ninja and CMake
-        shell: cmake -P {0}
-        run: |
-          set(cmake_version $ENV{CMAKE_VERSION})
-          set(ninja_version $ENV{NINJA_VERSION})
-          message(STATUS "Using host CMake version: ${CMAKE_VERSION}")
-          if ("${{ runner.os }}" STREQUAL "Windows")
-            set(ninja_suffix "win.zip")
-            set(cmake_suffix "win64-x64.zip")
-            set(cmake_dir "cmake-${cmake_version}-win64-x64/bin")
-          elseif ("${{ runner.os }}" STREQUAL "Linux")
-            set(ninja_suffix "linux.zip")
-            set(cmake_suffix "Linux-x86_64.tar.gz")
-            set(cmake_dir "cmake-${cmake_version}-Linux-x86_64/bin")
-          elseif ("${{ runner.os }}" STREQUAL "macOS")
-            set(ninja_suffix "mac.zip")
-            set(cmake_suffix "Darwin-x86_64.tar.gz")
-            set(cmake_dir "cmake-${cmake_version}-Darwin-x86_64/CMake.app/Contents/bin")
-          endif()
-          set(ninja_url "https://github.com/ninja-build/ninja/releases/download/v${ninja_version}/ninja-${ninja_suffix}")
-          file(DOWNLOAD "${ninja_url}" ./ninja.zip SHOW_PROGRESS)
-          execute_process(COMMAND ${CMAKE_COMMAND} -E tar xvf ./ninja.zip)
-          set(cmake_url "https://github.com/Kitware/CMake/releases/download/v${cmake_version}/cmake-${cmake_version}-${cmake_suffix}")
-          file(DOWNLOAD "${cmake_url}" ./cmake.zip SHOW_PROGRESS)
-          execute_process(COMMAND ${CMAKE_COMMAND} -E tar xvf ./cmake.zip)
-          # Add to PATH environment variable
-          file(TO_CMAKE_PATH "$ENV{GITHUB_WORKSPACE}/${cmake_dir}" cmake_dir)
-          set(path_separator ":")
-          if ("${{ runner.os }}" STREQUAL "Windows")
-            set(path_separator ";")
-          endif()
-          file(APPEND "$ENV{GITHUB_PATH}" "$ENV{GITHUB_WORKSPACE}${path_separator}${cmake_dir}")
-          if (NOT "${{ runner.os }}" STREQUAL "Windows")
-            execute_process(
-              COMMAND chmod +x ninja
-              COMMAND chmod +x ${cmake_dir}/cmake
-            )
-          endif()
-      - name: Download ccache
-        id: ccache
-        shell: cmake -P {0}
-        run: |
-          set(ccache_url "https://github.com/cristianadam/ccache/releases/download/v$ENV{CCACHE_VERSION}/${{ runner.os }}.tar.xz")
-          file(DOWNLOAD "${ccache_url}" ./ccache.tar.xz SHOW_PROGRESS)
-          execute_process(COMMAND ${CMAKE_COMMAND} -E tar xvf ./ccache.tar.xz)
+      # - name: Install yaml-cpp
+      #   run:   |
+      #     if [ "$RUNNER_OS" == "Linux" ]; then
+      #          sudo apt install -y libyaml-cpp-dev
+      #     elif [ "$RUNNER_OS" == "Windows" ]; then
+      #          # choco install yaml-cpp
+      #          vcpkg install yaml-cpp:x64-windows
+      #     elif [ "$RUNNER_OS" == "Darwin" ]; then
+      #          brew install yaml-cpp
+      #     elif [ "$RUNNER_OS" == "macOS" ]; then
+      #          brew install yaml-cpp
+      #     else
+      #          echo "$RUNNER_OS not supported"
+      #          exit 1
+      #     fi
+      #   shell: bash
+
+      # - name: Download Ninja and CMake
+      #   shell: cmake -P {0}
+      #   run: |
+      #     set(cmake_version $ENV{CMAKE_VERSION})
+      #     set(ninja_version $ENV{NINJA_VERSION})
+      #     message(STATUS "Using host CMake version: ${CMAKE_VERSION}")
+      #     if ("${{ runner.os }}" STREQUAL "Windows")
+      #       set(ninja_suffix "win.zip")
+      #       set(cmake_suffix "win64-x64.zip")
+      #       set(cmake_dir "cmake-${cmake_version}-win64-x64/bin")
+      #     elseif ("${{ runner.os }}" STREQUAL "Linux")
+      #       set(ninja_suffix "linux.zip")
+      #       set(cmake_suffix "Linux-x86_64.tar.gz")
+      #       set(cmake_dir "cmake-${cmake_version}-Linux-x86_64/bin")
+      #     elseif ("${{ runner.os }}" STREQUAL "macOS")
+      #       set(ninja_suffix "mac.zip")
+      #       set(cmake_suffix "Darwin-x86_64.tar.gz")
+      #       set(cmake_dir "cmake-${cmake_version}-Darwin-x86_64/CMake.app/Contents/bin")
+      #     endif()
+      #     set(ninja_url "https://github.com/ninja-build/ninja/releases/download/v${ninja_version}/ninja-${ninja_suffix}")
+      #     file(DOWNLOAD "${ninja_url}" ./ninja.zip SHOW_PROGRESS)
+      #     execute_process(COMMAND ${CMAKE_COMMAND} -E tar xvf ./ninja.zip)
+      #     set(cmake_url "https://github.com/Kitware/CMake/releases/download/v${cmake_version}/cmake-${cmake_version}-${cmake_suffix}")
+      #     file(DOWNLOAD "${cmake_url}" ./cmake.zip SHOW_PROGRESS)
+      #     execute_process(COMMAND ${CMAKE_COMMAND} -E tar xvf ./cmake.zip)
+      #     # Add to PATH environment variable
+      #     file(TO_CMAKE_PATH "$ENV{GITHUB_WORKSPACE}/${cmake_dir}" cmake_dir)
+      #     set(path_separator ":")
+      #     if ("${{ runner.os }}" STREQUAL "Windows")
+      #       set(path_separator ";")
+      #     endif()
+      #     file(APPEND "$ENV{GITHUB_PATH}" "$ENV{GITHUB_WORKSPACE}${path_separator}${cmake_dir}")
+      #     if (NOT "${{ runner.os }}" STREQUAL "Windows")
+      #       execute_process(
+      #         COMMAND chmod +x ninja
+      #         COMMAND chmod +x ${cmake_dir}/cmake
+      #       )
+      #     endif()
+      #
+      # - name: Download ccache
+      #   id: ccache
+      #   shell: cmake -P {0}
+      #   run: |
+      #     set(ccache_url "https://github.com/cristianadam/ccache/releases/download/v$ENV{CCACHE_VERSION}/${{ runner.os }}.tar.xz")
+      #     file(DOWNLOAD "${ccache_url}" ./ccache.tar.xz SHOW_PROGRESS)
+      #     execute_process(COMMAND ${CMAKE_COMMAND} -E tar xvf ./ccache.tar.xz)
+
       - name: Prepare ccache timestamp
         id: ccache_cache_timestamp
         shell: cmake -P {0}
@@ -130,10 +162,29 @@ jobs:
           key: ${{ matrix.config.name }}-ccache-${{ steps.ccache_cache_timestamp.outputs.timestamp }}
           restore-keys: |
             ${{ matrix.config.name }}-ccache-1-
-      # - name: prepare tools (doxygen, ...)
-      #   id: building_tools
-      #   run: |
-      #     sudo apt-get install doxygen
+
+      - name: Source Repo ready
+        #if: matrix.os == 'ubuntu-latest'
+        if: runner.os == 'Linux'
+        run: |
+          ls -la .
+          cat .git/config
+
+      - name: Tools ready
+        #if: matrix.os == 'ubuntu-latest'
+        if: runner.os == 'Linux'
+        run: |
+          echo "    python3: $(python3 --version)"
+          echo "    git: $(git --version)"
+          echo "    gcc: $(gcc --version)"
+          echo "    flex: $(flex --version)"
+          echo "    bison: $(bison --version)"
+          echo "    cmake: $(cmake --version)"
+          echo "    conan: $([ -x conan ] && conan --version)"
+          echo "    doxygen: $(doxygen --version)"
+          echo "    clang-tidy: $(clang-tidy --version)"
+          echo "    timestamp: $(date -u +'%FT%T%z')"
+
       - name: Configure
         shell: cmake -P {0}
         run: |
@@ -231,6 +282,7 @@ jobs:
             message("::error::${test_results}")
             message(FATAL_ERROR "Running tests failed!")
           endif()
+
       - name: Install Strip
         run: cmake --install build --prefix instdir --strip
 
@@ -279,22 +331,22 @@ jobs:
       fail-fast: false
       matrix:
         config:
-#          - {
-#            name: "Windows Latest MSVC", artifact: "Windows-MSVC.7z",
-#            os: windows-latest
-#          }
-#          - {
-#            name: "Windows Latest MinGW", artifact: "Windows-MinGW.7z",
-#            os: ubuntu-latest
-#          }
+          #          - {
+          #            name: "Windows Latest MSVC", artifact: "Windows-MSVC.7z",
+          #            os: windows-latest
+          #          }
+          #          - {
+          #            name: "Windows Latest MinGW", artifact: "Windows-MinGW.7z",
+          #            os: ubuntu-latest
+          #          }
           - {
             name: "Ubuntu Latest GCC", artifact: "Linux.7z",
             os: ubuntu-latest
           }
-#          - {
-#            name: "macOS Latest Clang", artifact: "macOS.7z",
-#            os: ubuntu-latest
-#          }
+    #          - {
+    #            name: "macOS Latest Clang", artifact: "macOS.7z",
+    #            os: ubuntu-latest
+    #          }
     needs: release
 
     steps:
