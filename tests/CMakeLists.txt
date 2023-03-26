@@ -79,6 +79,7 @@ function(define_test_program name)
 endfunction()
 
 define_test_program(basic basic.cc)
+define_test_program(holder holder.cc)
 
 
 message(STATUS "END of tests")

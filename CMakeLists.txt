@@ -22,7 +22,7 @@ endif ()
 
 #### OPTIONS ##################################################
 
-option(OK "PL-OK" ON)
+# option(OK "PL-OK" ON)
 
 option(FSM_CXX_BUILD_TEST_EXAMPLE "PL-OK" OFF)
 option(FSM_CXX_BUILD_DOC "PL-OK" OFF)

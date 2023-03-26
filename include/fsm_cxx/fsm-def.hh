@@ -16,14 +16,12 @@
 #include <sstream>
 #include <string>
 
-
 #if !defined(DEBUG) && defined(USE_DEBUG) && USE_DEBUG
-#define DEBUG  1
+#define DEBUG 1
 #endif
 #if !defined(_DEBUG) && defined(DEBUG)
 #define _DEBUG DEBUG
 #endif
-
 
 #ifndef _UNUSED_DEFINED
 #define _UNUSED_DEFINED
@@ -34,7 +32,7 @@
 //#endif
 template<typename... Args>
 inline void UNUSED([[maybe_unused]] Args &&...args) {
-    (void) (sizeof...(args));
+  (void) (sizeof...(args));
 }
 
 #elif __GNUC__ || _MSC_VER
@@ -53,14 +51,13 @@ inline void UNUSED([[maybe_unused]] Args &&...args) {
 
 #define ALL_UNUSED_IMPL_(nargs) UNUSED##nargs
 #define ALL_UNUSED_IMPL(nargs) ALL_UNUSED_IMPL_(nargs)
-#define UNUSED(...)                           \
-    ALL_UNUSED_IMPL(VA_NUM_ARGS(__VA_ARGS__)) \
-    (__VA_ARGS__)
+#define UNUSED(...)                         \
+  ALL_UNUSED_IMPL(VA_NUM_ARGS(__VA_ARGS__)) \
+  (__VA_ARGS__)
 #endif
 
 #endif
 #endif //_UNUSED_DEFINED
-
 
 #ifndef AWESOME_MAKE_ENUM
 /**
@@ -80,53 +77,52 @@ inline void UNUSED([[maybe_unused]] Args &&...args) {
  *  std::cout &lt;&lt; Week::Saturday << '\n';
  * @endcode
  */
-#define AWESOME_MAKE_ENUM(name, ...)                                \
-    enum class name { __VA_ARGS__,                                  \
-                      __COUNT };                                    \
-    inline std::ostream &operator<<(std::ostream &os, name value) { \
-        std::string enumName = #name;                               \
-        std::string str = #__VA_ARGS__;                             \
-        int len = (int) str.length(), val = -1;                     \
-        std::map<int, std::string> maps;                            \
-        std::ostringstream temp;                                    \
-        for (int i = 0; i < len; i++) {                             \
-            if (std::isspace(str[i])) continue;                     \
-            if (str[i] == ',') {                                    \
-                std::string s0 = temp.str();                        \
-                auto ix = s0.find('=');                             \
-                if (ix != std::string::npos) {                      \
-                    auto s2 = s0.substr(ix + 1);                    \
-                    s0 = s0.substr(0, ix);                          \
-                    std::stringstream ss(s2);                       \
-                    ss >> val;                                      \
-                } else                                              \
-                    val++;                                          \
-                maps.emplace(val, s0);                              \
-                temp.str(std::string());                            \
-            } else                                                  \
-                temp << str[i];                                     \
-        }                                                           \
-        std::string s0 = temp.str();                                \
-        auto ix = s0.find('=');                                     \
-        if (ix != std::string::npos) {                              \
-            auto s2 = s0.substr(ix + 1);                            \
-            s0 = s0.substr(0, ix);                                  \
-            std::stringstream ss(s2);                               \
-            ss >> val;                                              \
-        } else                                                      \
-            val++;                                                  \
-        maps.emplace(val, s0);                                      \
-        os << enumName << "::" << maps[(int) value];                \
-        return os;                                                  \
-    }
+#define AWESOME_MAKE_ENUM(name, ...)                              \
+  enum class name { __VA_ARGS__,                                  \
+                    __COUNT };                                    \
+  inline std::ostream &operator<<(std::ostream &os, name value) { \
+    std::string enumName = #name;                                 \
+    std::string str = #__VA_ARGS__;                               \
+    int len = (int) str.length(), val = -1;                       \
+    std::map<int, std::string> maps;                              \
+    std::ostringstream temp;                                      \
+    for (int i = 0; i < len; i++) {                               \
+      if (std::isspace(str[i])) continue;                         \
+      if (str[i] == ',') {                                        \
+        std::string s0 = temp.str();                              \
+        auto ix = s0.find('=');                                   \
+        if (ix != std::string::npos) {                            \
+          auto s2 = s0.substr(ix + 1);                            \
+          s0 = s0.substr(0, ix);                                  \
+          std::stringstream ss(s2);                               \
+          ss >> val;                                              \
+        } else                                                    \
+          val++;                                                  \
+        maps.emplace(val, s0);                                    \
+        temp.str(std::string());                                  \
+      } else                                                      \
+        temp << str[i];                                           \
+    }                                                             \
+    std::string s0 = temp.str();                                  \
+    auto ix = s0.find('=');                                       \
+    if (ix != std::string::npos) {                                \
+      auto s2 = s0.substr(ix + 1);                                \
+      s0 = s0.substr(0, ix);                                      \
+      std::stringstream ss(s2);                                   \
+      ss >> val;                                                  \
+    } else                                                        \
+      val++;                                                      \
+    maps.emplace(val, s0);                                        \
+    os << enumName << "::" << maps[(int) value];                  \
+    return os;                                                    \
+  }
 #endif
-
 
 #if !defined(HZ_HASH_COMBINE) && HZ_HASH_COMBINE != 1
 #define HZ_HASH_COMBINE 1
 
 namespace std {
-    /**
+  /**
      * @brief combine any hash values in a best way
      * @see boost::hash_combine
      * @tparam T 
@@ -140,23 +136,22 @@ namespace std {
      *     std::hash_combine(code, "from", "here");
      * @endcode
      */
-    template<typename T, typename... Rest>
-    inline void hash_combine(std::size_t &seed, T const &t, Rest &&...rest) {
-        std::hash<T> hasher;
-        seed ^= 0x9e3779b9 + (seed << 6) + (seed >> 2) + hasher(t);
-        int i[] = {0, (hash_combine(seed, std::forward<Rest>(rest)), 0)...};
-        (void) (i);
-    }
+  template<typename T, typename... Rest>
+  inline void hash_combine(std::size_t &seed, T const &t, Rest &&...rest) {
+    std::hash<T> hasher;
+    seed ^= 0x9e3779b9 + (seed << 6) + (seed >> 2) + hasher(t);
+    int i[] = {0, (hash_combine(seed, std::forward<Rest>(rest)), 0)...};
+    (void) (i);
+  }
 
-    template<typename T>
-    inline void hash_combine(std::size_t &seed, T const &v) {
-        std::hash<T> hasher;
-        seed ^= 0x9e3779b9 + (seed << 6) + (seed >> 2) + hasher(v);
-    }
+  template<typename T>
+  inline void hash_combine(std::size_t &seed, T const &v) {
+    std::hash<T> hasher;
+    seed ^= 0x9e3779b9 + (seed << 6) + (seed >> 2) + hasher(v);
+  }
 } // namespace std
 
 #endif
-
 
 #ifndef __FUNCTION_NAME__
 #ifdef __clang__

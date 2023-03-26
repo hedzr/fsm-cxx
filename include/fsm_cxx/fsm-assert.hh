@@ -11,7 +11,6 @@
 #ifndef __FSM_CXX_FSM_ASSERT_HH
 #define __FSM_CXX_FSM_ASSERT_HH
 
-
 #ifndef OS_WIN
 #if defined(WIN32) || defined(_WIN32) || defined(__WIN32__) || defined(__NT__)
 #ifndef OS_WIN
@@ -41,7 +40,6 @@
 #include <cstdio>
 #include <iostream>
 
-
 #ifndef __FUNCTION_NAME__
 #ifdef __clang__
 #define __FUNCTION_NAME__ __PRETTY_FUNCTION__
@@ -52,35 +50,33 @@
 #endif
 #endif
 
-
 #ifndef __PRINT_IF_FALSE
 #define __PRINT_IF_FALSE
 // for C++ assert:
 //    assert(print_if_false(a==b, "want a equal to b"));
 //
 inline bool print_if_false(const bool assertion, const char *msg) {
-    if (!assertion) {
-        std::cerr << msg << '\n';
-    }
-    return assertion;
+  if (!assertion) {
+    std::cerr << msg << '\n';
+  }
+  return assertion;
 }
 inline bool print_if_false(const bool assertion, const std::string &msg) { return print_if_false(assertion, msg.c_str()); }
 #endif
-
 
 #ifndef assertm
 // assertm(a == b, "want a equal to b");
 #ifdef _DEBUG
 #define assertm(expr, msg) \
-    __M_Assert(#expr, expr, __FILE__, __LINE__, __FUNCTION_NAME__, msg)
+  __M_Assert(#expr, expr, __FILE__, __LINE__, __FUNCTION_NAME__, msg)
 inline void __M_Assert(const char *expr_str, bool expr, const char *file, int line, const char *func, const char *msg) {
-    if (!expr) {
-        std::cerr << std::setfill(' ')
-                  << std::setw(19) << "Assert failed : " << msg << "\n"
-                  << std::setw(19) << "Expected : " << expr_str << "\n"
-                  << std::setw(19) << "Source : " << func << " at " << file << ':' << line << "\n";
-        std::abort();
-    }
+  if (!expr) {
+    std::cerr << std::setfill(' ')
+              << std::setw(19) << "Assert failed : " << msg << "\n"
+              << std::setw(19) << "Expected : " << expr_str << "\n"
+              << std::setw(19) << "Source : " << func << " at " << file << ':' << line << "\n";
+    std::abort();
+  }
 }
 inline void __M_Assert(const char *expr_str, bool expr,
                        const char *file, int line, const char *func,
@@ -89,6 +85,5 @@ inline void __M_Assert(const char *expr_str, bool expr,
 #define assertm(expr, msg) (void) 9
 #endif
 #endif
-
 
 #endif // __FSM_CXX_FSM_ASSERT_HH

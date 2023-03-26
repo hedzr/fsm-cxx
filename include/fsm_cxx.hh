@@ -21,11 +21,8 @@
 
 #include "fsm_cxx/fsm-common.hh"
 
-
 #include "fsm_cxx/fsm-sm.hh"
 
-
 #include "fsm_cxx/detail/fsm-if.hh"
-
 
 #endif // __FSM_CXX_HH
