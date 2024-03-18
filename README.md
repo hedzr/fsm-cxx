@@ -4,7 +4,9 @@
 ![CMake Build Matrix](https://github.com/hedzr/fsm-cxx/workflows/CMake%20Build%20Matrix/badge.svg?event=release)
 --> [![GitHub tag (latest SemVer)](https://img.shields.io/github/tag/hedzr/fsm-cxx.svg?label=release)](https://github.com/hedzr/fsm-cxx/releases)
 
-`fsm-cxx` is a finite state machina library for C++17, header-only, light-weight but full-featured, and designed for easy binding and friendly programmatic interface.
+`fsm-cxx` is a finite state machina library for C++17/C++20.
+It is header-only, light-weight but full-featured.
+It is designed for easy binding and friendly programmatic interface.
 
 ## Features
 
@@ -14,9 +16,9 @@
 - Transition conditions (input action)
 - Event payload (classes)
 - Thread Safe (`safe_machine_t<>`)
-- [ ] Inheritance of states and action functions
-- [ ] Documentations (NOT YET)
-- [ ] Examples (NOT YET)
+- ~~[ ] Inheritance of states and action functions~~
+- ~~[ ] Documentations (NOT YET)~~
+- ~~[ ] Examples (NOT YET)~~
 
 ---
 
