@@ -22,7 +22,8 @@ endif ()
 
 #### OPTIONS ##################################################
 
-# option(OK "PL-OK" ON)
+# cmake -S. -Bbuild -DFSM_CXX_STANDARD:STRING=20
+set(FSM_CXX_STANDARD 17 CACHE STRING "Define The C++ Standard, default is 17")
 
 option(FSM_CXX_BUILD_TEST_EXAMPLE "PL-OK" OFF)
 option(FSM_CXX_BUILD_DOC "PL-OK" OFF)
@@ -50,7 +51,7 @@ set(header_files
         ${CMAKE_CURRENT_SOURCE_DIR}/include/fsm_cxx/fsm-sm.hh
         )
 
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD ${FSM_CXX_STANDARD})
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
@@ -127,3 +128,5 @@ option(FSM_CXX_BUILD_DOCS "generate documentation" OFF)
 if (FSM_CXX_BUILD_DOCS)
     add_subdirectory(docs/)
 endif ()
+
+message(STATUS "tail of top level :  Using default C++ Standard ${FSM_CXX_STANDARD}")
