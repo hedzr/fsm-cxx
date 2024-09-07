@@ -1,4 +1,5 @@
 # CHANGELOG
 
+- v0.2.9 - security patch for github workflow
 - v0.2.3 - build passed for c++20
 - v0.2.1 - first public release with c++17 support

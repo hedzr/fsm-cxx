@@ -22,6 +22,8 @@ It is designed for easy binding and friendly programmatic interface.
 
 ---
 
+[See CHANGELOG](https://github.com/hedzr/fsm-cxx/blob/master/CHANGELOG)
+
 <!--
 Statechart features
 Hierarchical states
