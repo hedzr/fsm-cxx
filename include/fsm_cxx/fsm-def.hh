@@ -81,9 +81,10 @@ inline void UNUSED([[maybe_unused]] Args &&...args) {
   enum class name { __VA_ARGS__,                                  \
                     __COUNT };                                    \
   inline std::ostream &operator<<(std::ostream &os, name value) { \
-    std::string enumName = #name;                                 \
-    std::string str = #__VA_ARGS__;                               \
-    int len = (int) str.length(), val = -1;                       \
+    std::string const enumName = #name;                           \
+    std::string const str = #__VA_ARGS__;                         \
+    int const len = (int) str.length();                           \
+    int val = -1;                                                 \
     std::map<int, std::string> maps;                              \
     std::ostringstream temp;                                      \
     for (int i = 0; i < len; i++) {                               \
