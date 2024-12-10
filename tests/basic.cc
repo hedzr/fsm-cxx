@@ -202,13 +202,15 @@ namespace {
       f1(1, 2); // 1 为 _1 所绑定， 2 为 _2 所绑定，不使用 1001
                 // 进行到 f(2, 42, 1, n, 7) 的调用
 
-#if 0 // not for c++20 and higher \
+// not for c++20 and higher
+#if 0
       // 嵌套 bind 子表达式共享占位符
       auto f2 = std::bind(f, _3, [](auto &&, auto &&, auto &&PH3) { return g(std::forward<decltype(PH3)>(PH3)); }, _3, 4, 5);
       f2(10, 11, 12); // 进行到 f(12, g(12), 12, 4, 5); 的调用
 #endif
 
-#if 0 // not for c++20 and higher \
+// not for c++20 and higher
+#if 0
       // 常见使用情况：以分布绑定 RNG
       std::default_random_engine const e;
       std::uniform_int_distribution<> const d(0, 10);
