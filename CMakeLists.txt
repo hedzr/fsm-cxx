@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.9..3.21)
+cmake_minimum_required(VERSION 3.11)
 
 # ### PREPARATIONS ##################################################
 set(CMAKE_SCRIPTS "cmake")
